@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Monad — network reference — shadowoftime</title>
+<meta name="description" content="A technical reference on the Monad blockchain: consensus, parallel execution, token economics, and a side-by-side testnet / mainnet comparison." />
+<meta name="theme-color" content="#14b8a6" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #05050a;
+  --bg-card: #0e0e16;
+  --bg-code: #020206;
+  --bg-card-hover: #16161f;
+  --border: #242430;
+  --fg: #ececec;
+  --fg-dim: #b0b0b5;
+  --fg-muted: #6e6e78;
+  --accent: #14b8a6;
+  --accent-2: #5eead4;
+  --accent-glow: rgba(20, 184, 166, 0.38);
+  --warn: #facc15;
+  --ok: #4ade80;
+  --radius: 8px;
+  --font-sans: "Inter", -apple-system, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  position: relative;
+  background-image:
+    radial-gradient(ellipse at top, rgba(20, 184, 166, 0.08), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(20, 184, 166, 0.04), transparent 50%),
+    linear-gradient(rgba(20, 184, 166, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.028) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+  background-attachment: fixed;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent 0%, transparent 85%, rgba(5,5,10,0.9) 100%),
+    radial-gradient(circle at center, transparent 20%, rgba(5,5,10,0.5) 85%);
+  z-index: 0;
+}
+a { color: var(--accent-2); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+a:hover { color: var(--accent); }
+
+.layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 3rem;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  padding: 1.5rem 0;
+  font-size: 0.9rem;
+}
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+  text-decoration: none;
+  border: none;
+}
+.sidebar .brand svg {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px var(--accent-glow));
+}
+.sidebar .brand .name {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+.sidebar .brand .name small {
+  display: block;
+  color: var(--fg-muted);
+  font-size: 0.62rem;
+  margin-top: 3px;
+  letter-spacing: 0.1em;
+}
+.sidebar .sep {
+  border: none;
+  border-top: 1px dashed var(--border);
+  margin: 1rem 0;
+}
+.sidebar .back {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: inline-block;
+  padding: 0.4rem 0;
+  border: none;
+}
+.sidebar .back:hover { color: var(--accent); }
+.sidebar .toc {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+}
+.sidebar .toc a {
+  display: block;
+  padding: 0.4rem 0 0.4rem 0.75rem;
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-left: 1px solid transparent;
+  margin-left: -0.75rem;
+  border-bottom: none;
+  transition: all 0.2s ease;
+}
+.sidebar .toc a .n {
+  display: inline-block;
+  width: 1.6em;
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+}
+.sidebar .toc a:hover {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.sidebar .meta {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1.9;
+}
+
+@media (max-width: 880px) {
+  .layout { grid-template-columns: 1fr; gap: 1rem; }
+  .sidebar {
+    position: static;
+    max-height: none;
+    padding: 1rem 0 1.5rem;
+    border-bottom: 1px dashed var(--border);
+  }
+  .sidebar .toc { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; }
+  .sidebar .toc a { border-left: none; padding-left: 0; margin-left: 0; }
+  .sidebar .meta { display: none; }
+}
+
+.main { min-width: 0; }
+
+/* ---------- Hero ---------- */
+.hero-m {
+  padding: 2rem 0 3rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+.hero-m .tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+.hero-m h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin-bottom: 1rem;
+  background: linear-gradient(180deg, #fff 0%, var(--accent-2) 80%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero-m .lede {
+  color: var(--fg-dim);
+  font-size: 1.05rem;
+  max-width: 680px;
+  line-height: 1.7;
+}
+
+/* ---------- Sections ---------- */
+section.block {
+  padding: 2.5rem 0 1rem;
+  border-top: 1px dashed var(--border);
+  position: relative;
+}
+section.block:first-of-type { border-top: none; padding-top: 0; }
+section.block h2 {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  color: var(--fg);
+}
+section.block h2 .stepn {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  background: rgba(20, 184, 166, 0.08);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-right: 0.8rem;
+  vertical-align: middle;
+  position: relative;
+  top: -3px;
+}
+section.block h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin-top: 1.8rem;
+  margin-bottom: 0.6rem;
+}
+section.block p {
+  color: var(--fg-dim);
+  max-width: 720px;
+  margin-bottom: 1rem;
+}
+section.block ul {
+  color: var(--fg-dim);
+  max-width: 720px;
+  margin: 0.8rem 0 1rem 1.5rem;
+}
+section.block li { margin-bottom: 0.35rem; }
+section.block b { color: var(--fg); font-weight: 600; }
+section.block code.inline {
+  font-family: var(--font-mono);
+  font-size: 0.87em;
+  color: var(--accent-2);
+  background: rgba(20, 184, 166, 0.06);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(20, 184, 166, 0.15);
+}
+
+/* ---------- Facts table (key/value, mono) ---------- */
+.facts {
+  max-width: 720px;
+  margin: 1.5rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.facts .row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-top: 1px dashed var(--border);
+  align-items: baseline;
+}
+.facts .row:first-child { border-top: none; padding-top: 0; }
+.facts .k {
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+}
+.facts .v { color: var(--fg); }
+.facts .v .note { color: var(--fg-muted); font-size: 0.92em; }
+@media (max-width: 600px) {
+  .facts .row { grid-template-columns: 1fr; gap: 0.2rem; }
+}
+
+/* ---------- Network comparison table ---------- */
+.net-compare {
+  max-width: 820px;
+  margin: 1.5rem 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(180deg, rgba(20,184,166,0.025), transparent);
+}
+.net-compare .head {
+  display: grid;
+  grid-template-columns: 160px 1fr 1fr;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(20, 184, 166, 0.05);
+}
+.net-compare .head div { padding-right: 1rem; }
+.net-compare .head .mn { color: var(--fg); }
+.net-compare .head .tn { color: var(--fg-dim); }
+.net-compare .row {
+  display: grid;
+  grid-template-columns: 160px 1fr 1fr;
+  padding: 0.7rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  border-top: 1px dashed var(--border);
+  align-items: baseline;
+}
+.net-compare .row .k {
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.net-compare .row .v {
+  color: var(--fg);
+  padding-right: 1rem;
+  word-break: break-word;
+}
+.net-compare .row .v a { color: var(--accent-2); }
+@media (max-width: 720px) {
+  .net-compare .head, .net-compare .row { grid-template-columns: 1fr; gap: 0.15rem; }
+  .net-compare .row .k { margin-top: 0.5rem; }
+}
+
+/* ---------- Note callouts ---------- */
+.note {
+  max-width: 720px;
+  padding: 1rem 1.2rem 1rem 1.4rem;
+  margin: 1.2rem 0;
+  border-left: 3px solid var(--accent);
+  background: rgba(20, 184, 166, 0.04);
+  font-size: 0.94rem;
+  color: var(--fg-dim);
+  border-radius: 0 4px 4px 0;
+}
+.note .nhead {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+.note b { color: var(--fg); }
+.note.warn { border-left-color: var(--warn); background: rgba(250, 204, 21, 0.04); }
+.note.warn .nhead { color: var(--warn); }
+
+/* ---------- Big number highlight (for stats blocks) ---------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.8rem;
+  max-width: 720px;
+  margin: 1.5rem 0;
+}
+.stat-cell {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: rgba(20, 184, 166, 0.025);
+}
+.stat-cell .num {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.1;
+}
+.stat-cell .num .unit {
+  font-size: 0.7em;
+  color: var(--accent-2);
+  font-weight: 500;
+  margin-left: 0.2em;
+}
+.stat-cell .lbl {
+  margin-top: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ---------- Footer ---------- */
+footer.gfoot {
+  margin-top: 4rem;
+  padding: 2rem 0 1rem;
+  border-top: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+footer.gfoot .clock {
+  display: inline-block;
+  margin-right: 0.4rem;
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+footer.gfoot a { border: none; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <a href="index.html" class="brand">
+      <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="200" cy="200" r="178" fill="none" stroke="#14b8a6" stroke-width="8" opacity="0.7"/>
+        <circle cx="200" cy="200" r="150" fill="none" stroke="#14b8a6" stroke-width="4" stroke-dasharray="4 20" opacity="0.5"/>
+        <g fill="none" stroke="#14b8a6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 200 110 L 270 200 L 200 290 L 130 200 Z" stroke-width="10" opacity="0.85"/>
+          <path d="M 168 230 L 168 170 L 200 210 L 232 170 L 232 230" stroke-width="10" opacity="0.95"/>
+        </g>
+        <line x1="200" y1="200" x2="200" y2="75" stroke="#5eead4" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="200" cy="200" r="16" fill="#5eead4"/>
+      </svg>
+      <span class="name">shadowoftime<small>monad reference</small></span>
+    </a>
+
+    <a href="index.html" class="back">← back to profile</a>
+
+    <hr class="sep">
+
+    <ol class="toc">
+      <li><a href="#intro"><span class="n">00</span>Intro</a></li>
+      <li><a href="#what"><span class="n">01</span>What is Monad</a></li>
+      <li><a href="#bft"><span class="n">02</span>MonadBFT</a></li>
+      <li><a href="#exec"><span class="n">03</span>Parallel exec</a></li>
+      <li><a href="#storage"><span class="n">04</span>Storage</a></li>
+      <li><a href="#token"><span class="n">05</span>MON &amp; stake</a></li>
+      <li><a href="#compare"><span class="n">06</span>Mainnet vs test</a></li>
+      <li><a href="#testnet"><span class="n">07</span>Testnet</a></li>
+      <li><a href="#mainnet"><span class="n">08</span>Mainnet</a></li>
+      <li><a href="#participate"><span class="n">09</span>Participate</a></li>
+      <li><a href="#links"><span class="n">10</span>Resources</a></li>
+    </ol>
+
+    <div class="meta">
+      shadowoftime / monad<br/>
+      updated 2026-04-15<br/>
+      v1.0
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <header class="hero-m">
+      <div class="tag">Network reference · mainnet + testnet</div>
+      <h1>Monad — a high-performance EVM L1, explained</h1>
+      <p class="lede">
+        A concise, accurate, opinion-free reference on what Monad actually
+        is at the technical level: the consensus protocol, the parallel
+        execution engine, the storage layer, the token, and everything a
+        developer or validator operator needs to know about the live
+        testnet and the live mainnet. Every number here is quoted from
+        <a href="https://docs.monad.xyz" target="_blank" rel="noopener">docs.monad.xyz</a>.
+      </p>
+    </header>
+
+    <section class="block" id="intro">
+      <h2><span class="stepn">00</span>Intro</h2>
+      <p>
+        Monad is an L1 blockchain with full EVM bytecode compatibility,
+        designed for high throughput, sub-second finality and low operator
+        cost. It uses its own consensus protocol (MonadBFT), an optimistic
+        parallel execution engine, and a purpose-built state database
+        (MonadDB / TrieDB). The first production client is written by
+        <a href="https://github.com/category-labs" target="_blank" rel="noopener">Category Labs</a>
+        in C++ and Rust.
+      </p>
+      <p>
+        This page is a concentrated technical reference for anyone who
+        wants to know what the chain actually does at the protocol level —
+        and the exact coordinates of the live testnet and mainnet for
+        developers and node operators.
+      </p>
+    </section>
+
+    <section class="block" id="what">
+      <h2><span class="stepn">01</span>What is Monad</h2>
+      <p>
+        Monad is an EVM-compatible L1 that keeps Ethereum's state model,
+        bytecode semantics and block structure, but replaces the
+        underlying execution engine, consensus protocol and storage layer
+        with designs tuned for modern hardware and modern throughput
+        targets. The explicit goal is:
+      </p>
+      <ul>
+        <li>Sub-second time-to-finality.</li>
+        <li>10,000+ transactions per second on mainnet hardware.</li>
+        <li>Fully identical block semantics to Ethereum — any valid Ethereum transaction runs on Monad and produces the same state transitions.</li>
+        <li>A validator set large enough to remain meaningfully decentralized.</li>
+      </ul>
+      <p>
+        If you already know Ethereum, the short version is: <b>Monad is
+        Ethereum without the bottlenecks</b>. The observable contract
+        semantics are the same; the throughput and latency envelope is not.
+      </p>
+    </section>
+
+    <section class="block" id="bft">
+      <h2><span class="stepn">02</span>MonadBFT — the consensus protocol</h2>
+      <p>
+        Consensus on Monad is driven by <b>MonadBFT</b>, a pipelined,
+        leader-based Byzantine Fault Tolerant protocol in the HotStuff
+        family — with a new twist called <i>tail-fork resistance</i>
+        which prior pipelined BFT protocols don't have.
+      </p>
+
+      <h3>Finality in two rounds</h3>
+      <p>
+        From the docs: <i>"Speculative finality in a single consensus
+        round, and full finality in two rounds."</i> The happy path spans
+        three overlapping rounds, K, K+1, K+2:
+      </p>
+      <ul>
+        <li>Round <b>K</b>: leader Alice proposes a block → validators vote → the next leader aggregates a Quorum Certificate (QC).</li>
+        <li>Round <b>K+1</b>: leader Bob proposes a new payload plus the prior QC → validators vote → Alice's block achieves <b>speculative finality</b>.</li>
+        <li>Round <b>K+2</b>: leader Charlie proposes with a QC-squared → Alice's block achieves <b>full finality</b>.</li>
+      </ul>
+      <p>
+        Because the protocol is pipelined, new blocks are being proposed
+        and voted on continuously — there is no idle gap between rounds.
+      </p>
+
+      <h3>Key parameters</h3>
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="num">400 <span class="unit">ms</span></div>
+          <div class="lbl">min block time</div>
+        </div>
+        <div class="stat-cell">
+          <div class="num">400 <span class="unit">ms</span></div>
+          <div class="lbl">speculative finality</div>
+        </div>
+        <div class="stat-cell">
+          <div class="num">800 <span class="unit">ms</span></div>
+          <div class="lbl">full finality</div>
+        </div>
+        <div class="stat-cell">
+          <div class="num">10k+ <span class="unit">tx/s</span></div>
+          <div class="lbl">target throughput</div>
+        </div>
+      </div>
+
+      <h3>Fault tolerance</h3>
+      <p>
+        Standard BFT: <code class="inline">n = 3f + 1</code>, tolerating
+        up to <code class="inline">f</code> Byzantine faulty validators.
+        Two-thirds of the active set must remain honest for the chain to
+        progress.
+      </p>
+
+      <h3>Leaders &amp; stake weighting</h3>
+      <p>
+        Leadership rotates every round according to a schedule derived
+        from stake weights, computed in advance. No single validator
+        dominates block production — influence scales with stake, but
+        every validator in the active set eventually gets turns.
+      </p>
+
+      <h3>Tail-fork resistance (the novel bit)</h3>
+      <p>
+        In classical pipelined BFT protocols, a malicious leader can
+        sometimes fork away from their predecessor's block — effectively
+        orphaning it. MonadBFT closes this by making leaders <b>obligated
+        to re-propose the previous block</b> referenced in
+        <code class="inline">high_tip</code> of the Timeout Certificate,
+        unless they can get a supermajority attestation that the prior
+        block was not seen. This forces eventual inclusion of honest
+        proposals.
+      </p>
+
+      <h3>RaptorCast</h3>
+      <p>
+        Because Monad blocks can be large (10k+ transactions) and need to
+        reach the full validator set within a 400 ms round, naive
+        broadcast does not fit in the budget. Monad uses a
+        <b>RaptorCast</b> layer built on Raptor fountain codes — the
+        leader encodes the block into redundant packets that validators
+        can reassemble from any sufficient fraction, allowing propagation
+        to scale to large validator sets without each validator needing
+        the entire block from the leader directly.
+      </p>
+    </section>
+
+    <section class="block" id="exec">
+      <h2><span class="stepn">03</span>Parallel execution</h2>
+      <p>
+        Monad executes transactions <b>optimistically and in parallel</b>,
+        while preserving exactly the same block semantics as Ethereum.
+        The docs put it bluntly: <i>"Monad blocks are the same as Ethereum
+        blocks — a linearly ordered set of transactions. The result of
+        executing the transactions in a block is identical between Monad
+        and Ethereum."</i>
+      </p>
+      <p>
+        Instead of processing transactions one at a time, the client
+        speculatively runs multiple transactions in parallel and
+        reconciles them afterwards:
+      </p>
+      <ul>
+        <li>Start executing transaction 2 before transaction 1 has completed.</li>
+        <li>Track the inputs used by transaction 2 and compare them to the outputs of transaction 1.</li>
+        <li>If the inputs of 2 intersect the outputs of 1, the speculation was wrong — <b>re-execute</b> 2 with the correct post-state of 1.</li>
+        <li>If they don't intersect, the speculation was correct — commit both.</li>
+      </ul>
+      <p>
+        This is software transactional memory / optimistic concurrency
+        control applied to block execution. Conflict-free transactions
+        run truly in parallel; only conflicts pay the re-execution cost.
+        For typical real-world blockspace (where most transactions touch
+        independent contract state) the speedup is substantial while the
+        observable semantics remain bit-for-bit identical to Ethereum.
+      </p>
+
+      <div class="note">
+        <span class="nhead">EVM semantics</span>
+        Fully transparent. If your Solidity contract works on Ethereum,
+        it works on Monad, with the same opcodes, the same gas accounting
+        and the same storage layout. Parallelization is an <b>internal
+        optimization</b> of the client, not a change to the execution
+        model that developers see.
+      </div>
+    </section>
+
+    <section class="block" id="storage">
+      <h2><span class="stepn">04</span>Storage — MonadDB &amp; TrieDB</h2>
+      <p>
+        Monad stores state in a purpose-built database called
+        <b>MonadDB</b> (sometimes referred to as TrieDB in client
+        configuration). It's a Merkle-Patricia Trie store that lives on a
+        <b>raw block device</b> — not on a filesystem, not on a generic
+        key-value store like RocksDB. The point is to eliminate
+        filesystem overhead from the hot path and to match the access
+        patterns a consensus-driven execution engine actually produces.
+      </p>
+      <p>
+        This is why Monad node operators dedicate a whole NVMe drive to
+        the TrieDB — the database mounts it directly via a stable symlink
+        (<code class="inline">/dev/triedb</code>), partitioned but
+        unformatted. Any other workload on the same device would compete
+        for the I/O queue and degrade consensus-critical latency.
+      </p>
+    </section>
+
+    <section class="block" id="token">
+      <h2><span class="stepn">05</span>MON token &amp; staking</h2>
+      <p>
+        <b>MON</b> is Monad's native token. It pays for gas, it's the unit
+        of staking, and it's what validators earn as block rewards. It's
+        also the unit delegators use when bonding to a validator.
+      </p>
+
+      <div class="facts">
+        <div class="row"><div class="k">Min self-stake</div><div class="v"><b>100,000 MON</b> <span class="note">(MIN_AUTH_ADDRESS_STAKE — required to register a validator on-chain)</span></div></div>
+        <div class="row"><div class="k">Active set threshold</div><div class="v"><b>10,000,000 MON</b> <span class="note">(ACTIVE_VALIDATOR_STAKE — total self+delegated stake needed to produce blocks)</span></div></div>
+        <div class="row"><div class="k">Active set size</div><div class="v"><b>200</b> validators <span class="note">(ACTIVE_VALSET_SIZE — top 200 by stake)</span></div></div>
+        <div class="row"><div class="k">Block reward</div><div class="v"><b>25 MON</b> per block, minted by the protocol</div></div>
+        <div class="row"><div class="k">Epoch length</div><div class="v"><b>50,000 blocks</b> <span class="note">(≈ 5.5 hours at 400 ms block time)</span></div></div>
+        <div class="row"><div class="k">Withdrawal delay</div><div class="v"><b>1 epoch</b> <span class="note">(≈ 5.5 hours after <code class="inline">undelegate</code> before funds can be withdrawn)</span></div></div>
+        <div class="row"><div class="k">Commission</div><div class="v">0% – 100% (validator-configurable; VDP participants are capped at 20%)</div></div>
+        <div class="row"><div class="k">Dust threshold</div><div class="v">1 gwei (DUST_THRESHOLD — minimum delegation amount)</div></div>
+        <div class="row"><div class="k">Delegation</div><div class="v">Permissionless — any address can delegate to any registered validator</div></div>
+        <div class="row"><div class="k">Slashing (on-chain)</div><div class="v">Not currently active — violations are logged for accountability, no automatic on-chain penalties yet</div></div>
+      </div>
+
+      <div class="note">
+        <span class="nhead">What "active" means</span>
+        A validator becomes "active" (produces blocks, earns rewards) only
+        when its <i>total</i> stake — self-stake plus accumulated
+        delegations — exceeds <b>10,000,000 MON</b>. The 100,000 MON
+        self-stake is the minimum needed to register and start accepting
+        delegations; it's the floor, not the finish line.
+      </div>
+    </section>
+
+    <section class="block" id="compare">
+      <h2><span class="stepn">06</span>Mainnet vs Testnet — side by side</h2>
+      <p>
+        Both networks are live. Both run the same client and the same
+        protocol. They differ only in chain identity, endpoints, token
+        realism and the consequences of failure.
+      </p>
+
+      <div class="net-compare">
+        <div class="head">
+          <div>parameter</div>
+          <div class="mn">mainnet</div>
+          <div class="tn">testnet</div>
+        </div>
+        <div class="row">
+          <div class="k">chain id</div>
+          <div class="v">143</div>
+          <div class="v">10143</div>
+        </div>
+        <div class="row">
+          <div class="k">native token</div>
+          <div class="v">MON (production)</div>
+          <div class="v">MON (testnet, from faucet)</div>
+        </div>
+        <div class="row">
+          <div class="k">client version</div>
+          <div class="v">monad v0.13.1 / MONAD_NINE</div>
+          <div class="v">monad v0.14.1</div>
+        </div>
+        <div class="row">
+          <div class="k">primary RPC</div>
+          <div class="v"><a href="https://rpc.monad.xyz" target="_blank" rel="noopener">rpc.monad.xyz</a><br/>wss://rpc.monad.xyz</div>
+          <div class="v"><a href="https://testnet-rpc.monad.xyz" target="_blank" rel="noopener">testnet-rpc.monad.xyz</a></div>
+        </div>
+        <div class="row">
+          <div class="k">alt RPCs</div>
+          <div class="v">rpc1 (Alchemy), rpc2 (Goldsky), rpc3 (Ankr), rpc-mainnet.monadinfra.com (MF)</div>
+          <div class="v">rpc-testnet.monadinfra.com, rpc.ankr.com/monad_testnet</div>
+        </div>
+        <div class="row">
+          <div class="k">faucet</div>
+          <div class="v">—</div>
+          <div class="v"><a href="https://faucet.monad.xyz" target="_blank" rel="noopener">faucet.monad.xyz</a></div>
+        </div>
+        <div class="row">
+          <div class="k">explorers</div>
+          <div class="v"><a href="https://monadvision.com" target="_blank" rel="noopener">MonadVision</a> · <a href="https://monadscan.com" target="_blank" rel="noopener">Monadscan</a> · <a href="https://monad.socialscan.io" target="_blank" rel="noopener">Socialscan</a></div>
+          <div class="v"><a href="https://testnet.monadvision.com" target="_blank" rel="noopener">MonadVision</a> · <a href="https://testnet.monadscan.com" target="_blank" rel="noopener">Monadscan</a> · <a href="https://monad-testnet.socialscan.io" target="_blank" rel="noopener">Socialscan</a></div>
+        </div>
+        <div class="row">
+          <div class="k">validator set</div>
+          <div class="v">Live, permissioned via Foundation-backed delegation</div>
+          <div class="v">Live, permissioned via VDP program participants</div>
+        </div>
+        <div class="row">
+          <div class="k">failure cost</div>
+          <div class="v">Real — delegation loss, reputational damage</div>
+          <div class="v">Low — test MON is not real money</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="testnet">
+      <h2><span class="stepn">07</span>Testnet</h2>
+      <p>
+        The Monad testnet is the primary sandbox where developers deploy
+        contracts, where wallets and dApps integrate, and where aspiring
+        validators build operational history before applying to the
+        Validator Delegation Program. It's fully live and accepting
+        traffic today.
+      </p>
+
+      <h3>Quick start — add to wallet</h3>
+      <div class="facts">
+        <div class="row"><div class="k">Network name</div><div class="v">Monad Testnet</div></div>
+        <div class="row"><div class="k">New RPC URL</div><div class="v"><code class="inline">https://testnet-rpc.monad.xyz</code></div></div>
+        <div class="row"><div class="k">Chain ID</div><div class="v"><code class="inline">10143</code></div></div>
+        <div class="row"><div class="k">Currency symbol</div><div class="v"><code class="inline">MON</code></div></div>
+        <div class="row"><div class="k">Block explorer URL</div><div class="v"><code class="inline">https://testnet.monadscan.com</code></div></div>
+      </div>
+
+      <h3>Faucet</h3>
+      <p>
+        Test MON is distributed through the official faucet at
+        <a href="https://faucet.monad.xyz" target="_blank" rel="noopener">faucet.monad.xyz</a>.
+        Amounts per request are modest — enough for gas and normal
+        interaction, not enough to register a validator on-chain. For the
+        latter, operators typically wait for a <a href="#participate">VDP</a>
+        decision and receive onboarding guidance directly from the team.
+      </p>
+
+      <h3>What testnet is used for</h3>
+      <ul>
+        <li><b>Developers:</b> deploying Solidity contracts, dApp integration, stress-testing applications against real Monad consensus.</li>
+        <li><b>Validators:</b> accumulating the 4+ week operational history required by VDP, proving 98%+ uptime, demonstrating monitoring and incident response capability.</li>
+        <li><b>Ecosystem:</b> wallets, indexers, block explorers, oracles, bridges — everything that needs to talk to Monad is validated here first.</li>
+        <li><b>Protocol teams:</b> trialling staking, governance and delegation flows before touching real MON.</li>
+      </ul>
+    </section>
+
+    <section class="block" id="mainnet">
+      <h2><span class="stepn">08</span>Mainnet</h2>
+      <p>
+        Monad mainnet is live and running <b>monad v0.13.1 / MONAD_NINE</b>.
+        Block production is real, MON is the production token, and
+        validator participation is gated through the Validator Delegation
+        Program during the bootstrap period.
+      </p>
+
+      <h3>Quick start — add to wallet</h3>
+      <div class="facts">
+        <div class="row"><div class="k">Network name</div><div class="v">Monad Mainnet</div></div>
+        <div class="row"><div class="k">New RPC URL</div><div class="v"><code class="inline">https://rpc.monad.xyz</code></div></div>
+        <div class="row"><div class="k">Chain ID</div><div class="v"><code class="inline">143</code></div></div>
+        <div class="row"><div class="k">Currency symbol</div><div class="v"><code class="inline">MON</code></div></div>
+        <div class="row"><div class="k">Block explorer URL</div><div class="v"><code class="inline">https://monadscan.com</code></div></div>
+      </div>
+
+      <h3>RPC provider options</h3>
+      <ul>
+        <li><code class="inline">rpc.monad.xyz</code> — QuickNode, <b>25 rps</b>, primary</li>
+        <li><code class="inline">rpc1.monad.xyz</code> — Alchemy, <b>15 rps</b> (debug/trace disabled)</li>
+        <li><code class="inline">rpc2.monad.xyz</code> — Goldsky Edge, <b>300 per 10s</b>, historical lookups supported</li>
+        <li><code class="inline">rpc3.monad.xyz</code> — Ankr, <b>300 per 10s</b> (debug disabled)</li>
+        <li><code class="inline">rpc-mainnet.monadinfra.com</code> — Monad Foundation, <b>20 rps</b>, historical lookups supported</li>
+      </ul>
+
+      <div class="note warn">
+        <span class="nhead">On-chain slashing is not yet active</span>
+        At the time of writing, MonadBFT slashing is logged for
+        accountability but not enforced automatically on-chain. This will
+        change. Operators should not interpret the current state as
+        permission to be careless — double-signing and downtime still
+        cost reputation, delegation, and VDP status.
+      </div>
+    </section>
+
+    <section class="block" id="participate">
+      <h2><span class="stepn">09</span>How to participate</h2>
+      <p>
+        There are three ways to meaningfully participate in the Monad
+        network. Each one has its own entry cost and its own operational
+        discipline.
+      </p>
+
+      <h3>As a full-node operator</h3>
+      <p>
+        The lowest barrier. You run the client, you sync the chain, you
+        get a local RPC endpoint. You don't earn rewards, but you also
+        don't need stake — and you get to verify the chain independently,
+        run private services against it, and accumulate the operational
+        history that feeds the next tier. I've written a
+        <a href="guide.html">practical install guide</a> for exactly this
+        path.
+      </p>
+
+      <h3>As a validator via the Validator Delegation Program</h3>
+      <p>
+        The realistic path to the active validator set for independent
+        operators. The Validator Delegation Program (VDP) is the Monad
+        Foundation's mechanism for extending stake to qualified
+        third-party operators so they can meet the 10,000,000 MON active
+        threshold without needing to source that much stake themselves.
+      </p>
+
+      <h3>VDP selection criteria</h3>
+      <ul>
+        <li><b>Testnet operational history</b> — minimum 4 weeks of active operation before you can be considered</li>
+        <li><b>Uptime discipline</b> — 98%+ SLA, tracked from your own monitoring and audited during review</li>
+        <li><b>Industry experience</b> — track record on other protocols is a plus, especially at operator level</li>
+        <li><b>Monitoring &amp; security</b> — you must be able to describe your monitoring stack, alert pipeline, incident runbook and backup strategy</li>
+        <li><b>Geographic decentralization</b> — the Foundation explicitly weighs operators outside over-saturated regions</li>
+        <li><b>Ecosystem contribution</b> — write docs, help other operators, publish tooling</li>
+        <li><b>KYC / KYB</b> — mandatory before receiving delegation</li>
+        <li><b>Commission cap</b> — VDP participants are capped at 20% (normal is 10%)</li>
+        <li><b>Mandatory testnet operation</b> — even after receiving mainnet delegation, the testnet node must keep running at all times</li>
+      </ul>
+
+      <p>
+        The application form is at
+        <a href="https://tally.so/r/81N1KO" target="_blank" rel="noopener">tally.so/r/81N1KO</a>.
+        Wave 2 is open at the time of writing.
+      </p>
+
+      <h3>As a delegator</h3>
+      <p>
+        If you hold MON and want to earn staking rewards without running
+        infrastructure yourself, you can delegate to any existing
+        validator using Monad's staking CLI or any wallet integration
+        that supports it. Delegation is permissionless. Rewards
+        accumulate automatically as the validator produces blocks, and
+        you can either claim them (withdraw to your account) or compound
+        them (auto-restake). The withdrawal delay after
+        <code class="inline">undelegate</code> is one epoch (~5.5 hours).
+      </p>
+    </section>
+
+    <section class="block" id="links">
+      <h2><span class="stepn">10</span>Resources</h2>
+
+      <h3>Official</h3>
+      <ul>
+        <li><a href="https://docs.monad.xyz" target="_blank" rel="noopener">docs.monad.xyz</a> — official documentation index</li>
+        <li><a href="https://docs.monad.xyz/monad-arch" target="_blank" rel="noopener">docs.monad.xyz/monad-arch</a> — architecture deep-dive</li>
+        <li><a href="https://docs.monad.xyz/monad-arch/consensus/monad-bft" target="_blank" rel="noopener">MonadBFT specification</a></li>
+        <li><a href="https://docs.monad.xyz/monad-arch/execution/parallel-execution" target="_blank" rel="noopener">Parallel execution overview</a></li>
+        <li><a href="https://docs.monad.xyz/reference/staking/overview" target="_blank" rel="noopener">Staking reference</a></li>
+        <li><a href="https://docs.monad.xyz/node-ops/full-node-installation" target="_blank" rel="noopener">Full node install</a></li>
+        <li><a href="https://docs.monad.xyz/node-ops/validator-delegation-program" target="_blank" rel="noopener">VDP program</a></li>
+      </ul>
+
+      <h3>Client &amp; tooling</h3>
+      <ul>
+        <li><a href="https://github.com/category-labs" target="_blank" rel="noopener">Category Labs GitHub</a> — first Monad client (C++ &amp; Rust)</li>
+        <li><a href="https://github.com/monad-developers/staking-sdk-cli" target="_blank" rel="noopener">staking-sdk-cli</a> — CLI for on-chain validator registration, delegation, rewards</li>
+        <li><a href="https://pkg.category.xyz" target="_blank" rel="noopener">pkg.category.xyz</a> — APT repository for the monad package</li>
+        <li><a href="https://bucket.monadinfra.com" target="_blank" rel="noopener">bucket.monadinfra.com</a> — testnet config, snapshots, forkpoint, validators files</li>
+      </ul>
+
+      <h3>This site</h3>
+      <ul>
+        <li><a href="index.html">shadowoftime profile</a> — who I am, what I run</li>
+        <li><a href="guide.html">Monad full node install guide</a> — the practical walkthrough, including the rakes the docs step around</li>
+      </ul>
+    </section>
+
+    <footer class="gfoot">
+      <span class="clock">⏳</span>
+      shadowoftime · monad network reference v1.0 · 2026-04-15 ·
+      <a href="index.html">back to profile</a>
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>
