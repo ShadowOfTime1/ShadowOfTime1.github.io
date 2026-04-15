@@ -1,0 +1,1565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ShadowOfTime — Monad Validator</title>
+<meta name="description" content="Independent Monad testnet validator operator. Dedicated infrastructure, continuous monitoring." />
+<meta name="theme-color" content="#14b8a6" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #05050a;
+  --bg-card: #0e0e16;
+  --bg-card-hover: #16161f;
+  --border: #242430;
+  --fg: #ececec;
+  --fg-dim: #9a9a9e;
+  --fg-muted: #5a5a60;
+  --accent: #14b8a6;
+  --accent-2: #5eead4;
+  --accent-glow: rgba(20, 184, 166, 0.38);
+  --ok: #4ade80;
+  --warn: #facc15;
+  --crit: #f87171;
+  --radius: 10px;
+  --font-sans: "Inter", -apple-system, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  position: relative;
+  background-image:
+    radial-gradient(ellipse at top, rgba(20, 184, 166, 0.08), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(20, 184, 166, 0.04), transparent 50%),
+    linear-gradient(rgba(20, 184, 166, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.028) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+  background-attachment: fixed;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent 0%, transparent 85%, rgba(5,5,10,0.9) 100%),
+    radial-gradient(circle at center, transparent 20%, rgba(5,5,10,0.5) 85%);
+  z-index: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 3rem;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  padding: 1.5rem 0;
+  font-size: 0.9rem;
+}
+.sidebar .brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.sidebar .brand svg {
+  width: 52px;
+  height: 52px;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+.sidebar .brand .name {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.sidebar .status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 1.2rem;
+}
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-bottom: 1.5rem;
+}
+.sidebar nav a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.5rem 0;
+  color: var(--fg-dim);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-left: 1px solid transparent;
+  padding-left: 0.75rem;
+  margin-left: -0.75rem;
+  transition: all 0.2s ease;
+}
+.sidebar nav a .n {
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  min-width: 1.2em;
+}
+.sidebar nav a:hover {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.sidebar nav a.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.sidebar .meta {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 2;
+  padding-top: 1.2rem;
+  border-top: 1px dashed var(--border);
+}
+
+.main {
+  min-width: 0;
+}
+
+@media (max-width: 880px) {
+  .layout { grid-template-columns: 1fr; gap: 1.5rem; }
+  .sidebar {
+    position: static;
+    max-height: none;
+    padding: 1rem 0 1.5rem;
+    border-bottom: 1px dashed var(--border);
+  }
+  .sidebar nav { flex-direction: row; flex-wrap: wrap; gap: 0.3rem 1rem; }
+  .sidebar nav a { border-left: none; padding-left: 0; margin-left: 0; }
+  .sidebar .meta { display: none; }
+  .sidebar .brand { flex-direction: row; align-items: center; }
+  .sidebar .brand svg { width: 40px; height: 40px; }
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  text-align: center;
+  padding: 3rem 0 4rem;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.hero .astrolabe {
+  width: clamp(280px, 55vw, 420px);
+  height: auto;
+  margin: 0 auto 1.2rem;
+  display: block;
+  filter: drop-shadow(0 0 50px var(--accent-glow));
+}
+
+.hero .astrolabe .gnomon-shadow {
+  transform-origin: 200px 200px;
+  animation: gnomon 120s linear infinite;
+}
+@keyframes gnomon {
+  from { transform: rotate(-28deg); }
+  to   { transform: rotate(28deg); }
+}
+
+.hero .astrolabe .rim-text {
+  animation: rim-rotate 240s linear infinite;
+  transform-origin: 200px 200px;
+}
+@keyframes rim-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.hero h1 {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  line-height: 1;
+  color: var(--fg);
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.hero .tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 1.4rem;
+  display: block;
+}
+
+.hero .subtitle {
+  color: var(--fg-dim);
+  font-size: 1rem;
+  max-width: 520px;
+  margin: 0 auto 1.8rem;
+  line-height: 1.65;
+}
+
+.hero .meta {
+  display: inline-flex;
+  gap: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.hero .meta .dot { color: var(--ok); }
+
+.hero .cta {
+  margin-top: 2rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.hero .cta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.3rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.15s ease;
+}
+.hero .cta a.primary {
+  background: var(--accent);
+  color: #1a1408;
+}
+.hero .cta a.primary:hover {
+  background: var(--accent-2);
+  box-shadow: 0 0 30px var(--accent-glow);
+}
+.hero .cta a.secondary {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+.hero .cta a.secondary:hover {
+  border-color: var(--accent);
+  background: rgba(20, 184, 166, 0.05);
+}
+
+/* ---------- Sections ---------- */
+
+section {
+  padding: 4rem 0 1.5rem;
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 2.5rem;
+  position: relative;
+}
+section::before {
+  content: "";
+  position: absolute;
+  top: 4rem;
+  bottom: 0;
+  left: 80px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--border), transparent 80%);
+  opacity: 0.4;
+}
+
+section .num {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  padding-top: 4px;
+  text-align: right;
+  padding-right: 1rem;
+}
+section .num .big {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  color: var(--fg-muted);
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.02em;
+}
+
+section h2 {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+section h3 {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin-bottom: 1.2rem;
+  color: var(--fg);
+}
+
+section p {
+  color: var(--fg-dim);
+  max-width: 640px;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 700px) {
+  section { grid-template-columns: 50px 1fr; gap: 1rem; }
+  section::before { left: 50px; }
+  section .num { padding-right: 0.5rem; }
+  section .num .big { font-size: 1.6rem; }
+}
+
+/* ---------- Ledger / experience timeline ---------- */
+
+.ledger-block {
+  margin-top: 1.8rem;
+  max-width: 680px;
+}
+
+.ledger-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0 0.8rem;
+  border-bottom: 1px solid var(--accent);
+  margin-bottom: 0.2rem;
+}
+.ledger-head .ledger-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.ledger-head .ledger-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  letter-spacing: 0.1em;
+}
+.ledger-head .ledger-pulse {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow), 0 0 2px var(--accent-2);
+  animation: pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.ledger-head.past {
+  border-bottom-color: var(--fg-muted);
+  opacity: 0.85;
+}
+.ledger-head.past .ledger-label { color: var(--fg-muted); }
+.ledger-head .ledger-pulse-past {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--fg-muted);
+  flex-shrink: 0;
+}
+
+.timeline {
+  list-style: none;
+  padding: 0;
+  position: relative;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 14px;
+  bottom: 14px;
+  width: 1px;
+  opacity: 0.55;
+}
+.timeline.active::before {
+  background: linear-gradient(180deg, var(--accent), var(--accent) 85%, transparent);
+}
+.timeline.past::before {
+  background: linear-gradient(180deg, var(--border), var(--border) 85%, transparent);
+}
+.timeline li {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 1.2rem;
+  padding: 0.95rem 0 0.95rem 1.8rem;
+  position: relative;
+  border-bottom: 1px dashed var(--border);
+}
+.timeline li:last-child { border-bottom: none; }
+.timeline li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 1.15rem;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1.5px solid var(--accent);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+.timeline.active li::before {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow), 0 0 0 3px var(--bg);
+}
+.timeline.past li::before {
+  border-color: var(--fg-muted);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--bg);
+}
+.timeline .chain {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: 0.02em;
+  padding-top: 2px;
+}
+.timeline.past .chain {
+  color: var(--fg-dim);
+  font-weight: 600;
+}
+.timeline .chain .role {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-top: 4px;
+}
+.timeline.past .chain .role {
+  color: var(--fg-muted);
+}
+.timeline .desc {
+  color: var(--fg-dim);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.timeline.past .desc {
+  color: var(--fg-muted);
+  font-size: 0.92rem;
+}
+@media (max-width: 600px) {
+  .timeline li { grid-template-columns: 1fr; gap: 0.3rem; }
+}
+
+/* ---------- Status dial (Live) ---------- */
+
+.status-dial {
+  margin-top: 1.5rem;
+  max-width: 680px;
+  position: relative;
+}
+.status-dial svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 40px var(--accent-glow));
+}
+.status-dial svg .rim-text {
+  transform-origin: 260px 260px;
+  animation: rim-rotate 300s linear infinite;
+}
+.status-dial svg .gnomon-shadow {
+  animation: gnomon 150s linear infinite;
+}
+
+.status-legend {
+  margin-top: 1.8rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 2rem;
+  padding: 1rem 1.2rem 0.8rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(20, 184, 166, 0.025), transparent 80%);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  position: relative;
+}
+.status-legend::before,
+.status-legend::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--accent);
+  opacity: 0.7;
+}
+.status-legend::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.status-legend::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+.status-legend .leg-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px dashed var(--border);
+}
+.status-legend .leg-item:nth-last-child(-n+3) { border-bottom: none; }
+.status-legend .leg-k {
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+}
+.status-legend .leg-v {
+  color: var(--fg);
+}
+.status-legend .leg-v.ok { color: var(--accent-2); }
+.status-legend .leg-foot {
+  grid-column: 1 / -1;
+  font-size: 0.65rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-align: right;
+  padding-top: 0.6rem;
+  margin-top: 0.3rem;
+  border-top: 1px dashed var(--border);
+}
+
+@media (max-width: 560px) {
+  .status-legend { grid-template-columns: 1fr; }
+}
+
+/* ---------- Legacy terminal (unused) ---------- */
+
+.terminal {
+  margin-top: 1.5rem;
+  max-width: 720px;
+  background: #020206;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(20, 184, 166, 0.1),
+    0 20px 60px -20px rgba(0, 0, 0, 0.8),
+    0 0 40px -10px var(--accent-glow);
+  position: relative;
+}
+.terminal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 2px,
+    rgba(255, 255, 255, 0.012) 2px,
+    rgba(255, 255, 255, 0.012) 3px
+  );
+  z-index: 2;
+}
+.term-bar {
+  background: linear-gradient(180deg, #0b0b12, #07070c);
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.05em;
+}
+.term-bar .term-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  flex-shrink: 0;
+}
+.term-bar .term-title {
+  color: var(--fg-dim);
+}
+.term-body {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--fg-dim);
+  padding: 1.1rem 1.25rem 1.25rem;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 0;
+}
+.term-body .pmt {
+  color: var(--accent);
+  font-weight: 700;
+}
+.term-body .cmd {
+  color: var(--fg);
+  font-weight: 500;
+}
+.term-body .k {
+  color: var(--fg-muted);
+}
+.term-body .v {
+  color: var(--fg);
+}
+.term-body .v.ok {
+  color: var(--accent-2);
+  text-shadow: 0 0 6px var(--accent-glow);
+}
+.term-body .m {
+  color: var(--fg-muted);
+  opacity: 0.7;
+  font-size: 0.92em;
+}
+.term-body .cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: blink 1.2s steps(2) infinite;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
+.term-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, #07070c, #0b0b12);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+.term-footer .live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  margin-left: auto;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ---------- Legacy dash (unused, kept for fallback) ---------- */
+
+.dash {
+  margin-top: 1.5rem;
+  max-width: 780px;
+  position: relative;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(20, 184, 166, 0.02), transparent 80%);
+}
+.dash::before, .dash::after,
+.dash > .tl, .dash > .tr, .dash > .bl, .dash > .br {
+  display: block;
+}
+.dash .tl, .dash .tr, .dash .bl, .dash .br {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--accent);
+  opacity: 0.7;
+}
+.dash .tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.dash .tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+.dash .bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+.dash .br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+.dash .snap-time {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-align: right;
+  margin-bottom: 0.5rem;
+}
+
+.dash .block-head {
+  text-align: center;
+  padding: 0.8rem 0 1.5rem;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 1.5rem;
+}
+.dash .block-head .label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-bottom: 0.3rem;
+}
+.dash .block-head .value {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff, var(--accent-2) 80%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 40px var(--accent-glow);
+}
+.dash .block-head .sub {
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.05em;
+}
+.dash .block-head .sub .sep { color: var(--accent); margin: 0 0.6rem; opacity: 0.5; }
+.dash .block-head .sub .ok { color: var(--ok); }
+
+.dash .gauges {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.dash .gauge {
+  text-align: center;
+}
+.dash .gauge svg { width: 100%; max-width: 140px; height: auto; }
+.dash .gauge .label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 0.2rem;
+}
+@media (max-width: 500px) {
+  .dash .gauges { grid-template-columns: 1fr; gap: 1rem; }
+}
+
+.dash .bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px dashed var(--border);
+}
+.dash .bar-item {
+  display: grid;
+  grid-template-columns: 90px 1fr 70px;
+  gap: 1rem;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+.dash .bar-item .lbl {
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+}
+.dash .bar-item .track {
+  position: relative;
+  height: 6px;
+  background: rgba(20, 184, 166, 0.1);
+  overflow: hidden;
+}
+.dash .bar-item .track::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--pct, 0%);
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.dash .bar-item .val {
+  color: var(--fg);
+  text-align: right;
+}
+
+.dash .nvme-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-align: center;
+}
+.dash .nvme-strip .d {
+  padding: 0.7rem 0.4rem;
+  background: rgba(20, 184, 166, 0.03);
+  border: 1px solid var(--border);
+}
+.dash .nvme-strip .d .name {
+  font-size: 0.62rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.dash .nvme-strip .d .t {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--accent-2);
+}
+.dash .nvme-strip .d .t::after { content: "°"; font-size: 0.8em; opacity: 0.7; }
+
+/* ---------- Spec list (Infrastructure) ---------- */
+
+.spec {
+  margin-top: 1.25rem;
+  max-width: 640px;
+}
+.spec dl {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 0.5rem 1.5rem;
+}
+.spec dt {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+}
+.spec dd {
+  font-size: 1rem;
+  color: var(--fg);
+  padding-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+.spec dt:first-of-type,
+.spec dd:first-of-type {
+  border-top: none;
+}
+.spec dd .sub {
+  display: block;
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+@media (max-width: 600px) {
+  .spec dl { grid-template-columns: 1fr; gap: 0.1rem; }
+  .spec dt { border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 6px; }
+  .spec dd { border-top: none; padding-top: 2px; padding-bottom: 6px; }
+  .spec dt:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+}
+
+/* ---------- Ops list (plain bulleted) ---------- */
+
+.ops {
+  margin-top: 1.25rem;
+  max-width: 640px;
+  list-style: none;
+  padding: 0;
+}
+.ops li {
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.55rem 0;
+  color: var(--fg-dim);
+  font-size: 0.97rem;
+  line-height: 1.55;
+  border-bottom: 1px dashed var(--border);
+}
+.ops li:last-child { border-bottom: none; }
+.ops li::before {
+  content: "◆";
+  color: var(--accent);
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  padding-top: 6px;
+}
+.ops li b {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+/* ---------- Identity block ---------- */
+
+.identity {
+  margin-top: 1.25rem;
+  font-family: var(--font-mono);
+  max-width: 780px;
+}
+.identity .row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  align-items: start;
+  border-top: 1px dashed var(--border);
+}
+.identity .row:first-child { border-top: none; padding-top: 0; }
+.identity .row .k {
+  color: var(--fg-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding-top: 4px;
+}
+.identity .row .v {
+  color: var(--fg);
+  font-size: 0.88rem;
+  word-break: break-all;
+}
+.identity .row .v a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+.identity .row .v a:hover { color: var(--accent-2); }
+@media (max-width: 600px) {
+  .identity .row { grid-template-columns: 1fr; gap: 0.2rem; }
+}
+
+/* ---------- Contact bar (icon-only, centered) ---------- */
+
+.contact-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.8rem;
+  margin: 4rem auto 2rem;
+  padding: 1.2rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  max-width: 380px;
+}
+.contact-bar a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--fg-muted);
+  transition: all 0.2s ease;
+}
+.contact-bar a:hover {
+  color: var(--accent);
+  transform: translateY(-2px);
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+.contact-bar a svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* ---------- Footer ---------- */
+
+footer {
+  text-align: center;
+  margin-top: 5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+footer .clock {
+  display: inline-block;
+  font-size: 1.3rem;
+  margin-right: 0.5rem;
+  vertical-align: -3px;
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+/* ---------- Utilities ---------- */
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot { animation: none; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="200" cy="200" r="178" fill="none" stroke="#14b8a6" stroke-width="8" opacity="0.7"/>
+        <circle cx="200" cy="200" r="150" fill="none" stroke="#14b8a6" stroke-width="4" stroke-dasharray="4 20" opacity="0.5"/>
+        <g fill="none" stroke="#14b8a6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 200 110 L 270 200 L 200 290 L 130 200 Z" stroke-width="10" opacity="0.85"/>
+          <path d="M 168 230 L 168 170 L 200 210 L 232 170 L 232 230" stroke-width="10" opacity="0.95"/>
+        </g>
+        <line x1="200" y1="200" x2="200" y2="75" stroke="#5eead4" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="200" cy="200" r="16" fill="#5eead4"/>
+      </svg>
+      <span class="name">shadowoftime</span>
+    </div>
+    <div class="status">
+      <span class="status-dot"></span> operational
+    </div>
+    <nav>
+      <a href="#about"><span class="n">01</span>About</a>
+      <a href="#experience"><span class="n">02</span>Past</a>
+      <a href="#status"><span class="n">03</span>Live</a>
+      <a href="#ops"><span class="n">04</span>Ops</a>
+      <a href="#identity"><span class="n">05</span>Keys</a>
+      <a href="#contact"><span class="n">06</span>Contact</a>
+    </nav>
+    <div class="meta">
+      monad 0.14.1<br/>
+      testnet · 10143
+    </div>
+  </aside>
+
+  <main class="main">
+
+  <header class="hero">
+    <svg class="astrolabe" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="faceGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.14"/>
+          <stop offset="55%" stop-color="#14b8a6" stop-opacity="0.04"/>
+          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="gnomonGrad" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#14b8a6"/>
+          <stop offset="100%" stop-color="#5eead4"/>
+        </linearGradient>
+        <path id="rimTextPath" d="M 200 200 m -168 0 a 168 168 0 1 1 336 0 a 168 168 0 1 1 -336 0"/>
+      </defs>
+
+      <!-- glow disc -->
+      <circle cx="200" cy="200" r="190" fill="url(#faceGlow)"/>
+
+      <!-- outermost ring -->
+      <circle cx="200" cy="200" r="185" fill="none" stroke="#14b8a6" stroke-width="0.6" opacity="0.3"/>
+
+      <!-- rotating rim with engraved text -->
+      <g class="rim-text">
+        <circle cx="200" cy="200" r="178" fill="none" stroke="#14b8a6" stroke-width="1" opacity="0.65"/>
+        <circle cx="200" cy="200" r="158" fill="none" stroke="#14b8a6" stroke-width="0.6" opacity="0.5"/>
+        <text font-family="JetBrains Mono, monospace" font-size="11" fill="#14b8a6" letter-spacing="4" opacity="0.9">
+          <textPath href="#rimTextPath" startOffset="0">
+            · SHADOW OF TIME · MONAD TESTNET VALIDATOR · SYDNEY AU · SHADOW OF TIME · MONAD TESTNET VALIDATOR · SYDNEY AU ·
+          </textPath>
+        </text>
+        <!-- tick marks for the outer dial -->
+        <g stroke="#14b8a6" stroke-width="0.6" opacity="0.5">
+          <circle cx="200" cy="200" r="150" fill="none" stroke-dasharray="0.5 9.3"/>
+        </g>
+      </g>
+
+      <!-- inner fixed dial -->
+      <circle cx="200" cy="200" r="138" fill="none" stroke="#14b8a6" stroke-width="0.8" opacity="0.4"/>
+
+      <!-- hour marks (cardinal: XII, III, VI, IX) -->
+      <g stroke="#14b8a6" stroke-linecap="round">
+        <line x1="200" y1="66" x2="200" y2="82" stroke-width="2"/>
+        <line x1="334" y1="200" x2="318" y2="200" stroke-width="2"/>
+        <line x1="200" y1="334" x2="200" y2="318" stroke-width="2"/>
+        <line x1="66" y1="200" x2="82" y2="200" stroke-width="2"/>
+      </g>
+
+      <!-- secondary hour marks -->
+      <g stroke="#14b8a6" stroke-width="1" stroke-linecap="round" opacity="0.6">
+        <line x1="267" y1="82.7"  x2="260.3" y2="94.6" />
+        <line x1="317.3" y1="133" x2="305.4" y2="139.7" />
+        <line x1="317.3" y1="267" x2="305.4" y2="260.3" />
+        <line x1="267"   y1="317.3" x2="260.3" y2="305.4" />
+        <line x1="133"   y1="317.3" x2="139.7" y2="305.4" />
+        <line x1="82.7"  y1="267" x2="94.6" y2="260.3" />
+        <line x1="82.7"  y1="133" x2="94.6" y2="139.7" />
+        <line x1="133"   y1="82.7" x2="139.7" y2="94.6" />
+      </g>
+
+      <!-- fine ticks between hours -->
+      <g stroke="#14b8a6" stroke-width="0.4" opacity="0.3">
+        <circle cx="200" cy="200" r="128" fill="none" stroke-dasharray="0.5 5.35"/>
+      </g>
+
+      <!-- dashed mid ring -->
+      <circle cx="200" cy="200" r="110" fill="none" stroke="#14b8a6" stroke-width="0.5" stroke-dasharray="1 5" opacity="0.55"/>
+
+      <!-- Monad-inspired central diamond/M composition -->
+      <g fill="none" stroke="#14b8a6" stroke-linecap="round" stroke-linejoin="round">
+        <!-- main diamond (rhombus), echoing Monad's angular brand geometry -->
+        <path d="M 200 110 L 270 200 L 200 290 L 130 200 Z" stroke-width="1.6" opacity="0.85"/>
+        <!-- inner smaller diamond -->
+        <path d="M 200 140 L 244 200 L 200 260 L 156 200 Z" stroke-width="1" opacity="0.6"/>
+        <!-- horizontal traverse lines (Monad-style) -->
+        <line x1="156" y1="200" x2="244" y2="200" stroke-width="0.8" opacity="0.5"/>
+        <line x1="130" y1="200" x2="270" y2="200" stroke-width="0.5" opacity="0.4" stroke-dasharray="2 4"/>
+        <!-- stylized M strokes overlaying the diamond -->
+        <path d="M 168 230 L 168 170 L 200 210 L 232 170 L 232 230" stroke-width="1.3" opacity="0.95"/>
+      </g>
+
+      <!-- gnomon shadow sweeping -->
+      <g class="gnomon-shadow">
+        <path d="M 200 200 L 200 75" stroke="#5eead4" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M 200 200 L 200 75" stroke="#14b8a6" stroke-width="9" stroke-linecap="round" opacity="0.1"/>
+      </g>
+
+      <!-- central hub -->
+      <circle cx="200" cy="200" r="5.5" fill="#5eead4"/>
+      <circle cx="200" cy="200" r="9" fill="none" stroke="#14b8a6" stroke-width="0.8" opacity="0.5"/>
+
+      <!-- corner marks -->
+      <g stroke="#14b8a6" stroke-width="0.6" opacity="0.25" fill="none">
+        <path d="M 20 20 L 20 50 M 20 20 L 50 20"/>
+        <path d="M 380 20 L 380 50 M 380 20 L 350 20"/>
+        <path d="M 20 380 L 20 350 M 20 380 L 50 380"/>
+        <path d="M 380 380 L 380 350 M 380 380 L 350 380"/>
+      </g>
+    </svg>
+
+    <h1>shadowoftime</h1>
+    <span class="tag">Monad testnet validator</span>
+    <p class="subtitle">
+      Independent operator running dedicated infrastructure for the
+      Monad network. Focused on reliability, transparency and
+      long-term participation.
+    </p>
+    <div class="meta">
+      <span><span class="status-dot"></span> Testnet full node online</span>
+      <span>· monad v0.14.1</span>
+    </div>
+  </header>
+
+  <section id="about">
+    <div class="num"><span class="big">01</span>About</div>
+    <div class="content">
+    <h2>About</h2>
+    <h3>Solo operator, built for the long run.</h3>
+    <p>
+      I've been running blockchain infrastructure for more than
+      <b>7 years</b> across multiple L1 and L2 networks, both Proof-of-Stake
+      and zero-knowledge protocols. Over that time I've learned the rhythms
+      of upgrade cycles, epoch boundaries, slashing windows, snapshot
+      restores and the hundred other things that only reveal themselves
+      when you actually operate production nodes.
+    </p>
+    <p>
+      Today my focus is the Monad Validator Delegation Program. I run an
+      unmodified testnet full node with careful operations practice and
+      continuous monitoring, and I believe in decentralization through
+      geographic and operator diversity. I'm committed to the vanilla
+      Monad consensus — no custom MEV infrastructure, no third-party
+      block-building.
+    </p>
+    </div>
+  </section>
+
+  <section id="experience">
+    <div class="num"><span class="big">02</span>Past</div>
+    <div class="content">
+    <h2>Experience</h2>
+    <h3>Earlier networks I've run nodes on.</h3>
+    <p>
+      Monad isn't my first chain. Over the last few years I've operated
+      nodes across several different architectures — each taught me
+      something about the specific class of problems you only see when
+      you actually run production infrastructure.
+    </p>
+
+    <div class="ledger-block">
+      <div class="ledger-head">
+        <span class="ledger-pulse"></span>
+        <span class="ledger-label">Active nodes</span>
+        <span class="ledger-count">3</span>
+      </div>
+      <ol class="timeline active">
+        <li class="active">
+          <div class="chain">Starknet<span class="role">Active · full node</span></div>
+          <div class="desc">Running a full node on the STARK-based rollup. Cairo VM and validity proofs — a very different mental model from every EVM chain, with its own operational rhythm around proof submission and L1 settlement.</div>
+        </li>
+        <li class="active">
+          <div class="chain">Oasis Network<span class="role">Active · node operator</span></div>
+          <div class="desc">ParaTime-based architecture with confidential compute. Operating in the Oasis ecosystem taught me how to handle multiple runtime environments sharing consensus and the peculiarities of privacy-preserving execution.</div>
+        </li>
+        <li class="active">
+          <div class="chain">Monad<span class="role">Active · testnet · current focus</span></div>
+          <div class="desc">My current primary focus. Running an unmodified testnet full node with a dedicated TrieDB, the full monitoring stack and a long-term operations plan targeting the Validator Delegation Program.</div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="ledger-block">
+      <div class="ledger-head past">
+        <span class="ledger-pulse-past"></span>
+        <span class="ledger-label">Past nodes</span>
+        <span class="ledger-count">6</span>
+      </div>
+      <ol class="timeline past">
+        <li>
+          <div class="chain">Mina<span class="role">Block producer</span></div>
+          <div class="desc">Zero-knowledge L1 with SNARK-based consensus. Hands-on experience with a delegation-driven block production model and the quirks of verifying succinct proofs at runtime.</div>
+        </li>
+        <li>
+          <div class="chain">Solana<span class="role">Validator</span></div>
+          <div class="desc">High-throughput L1 that forces you to care about hardware, network latency and disk I/O. Extensive metrics, skip rate, vote credit accounting, aggressive monitoring.</div>
+        </li>
+        <li>
+          <div class="chain">Cosmos<span class="role">Validator · multiple zones</span></div>
+          <div class="desc">Tendermint-based networks with on-chain governance, bonding and slashing semantics. Learned the discipline of epoch-aware operations, double-sign avoidance and graceful upgrades.</div>
+        </li>
+        <li>
+          <div class="chain">Sui<span class="role">Full node</span></div>
+          <div class="desc">Object-centric state model with the Move VM. Different mental model for state, different storage pressure profile — a useful contrast to EVM-family chains.</div>
+        </li>
+        <li>
+          <div class="chain">Archway<span class="role">Validator</span></div>
+          <div class="desc">CosmWasm-based smart contract chain with developer incentives baked into the protocol. Interesting fee-sharing model and a good case study in operator alignment.</div>
+        </li>
+        <li>
+          <div class="chain">Dymension<span class="role">Validator · RollApp era</span></div>
+          <div class="desc">Modular blockchain hub for app-specific rollups built on the Cosmos stack. Hands-on experience with the RollApp architecture, sequencer dynamics and DA-layer interactions.</div>
+        </li>
+      </ol>
+    </div>
+    </div>
+  </section>
+
+  <section id="status">
+    <div class="num"><span class="big">03</span>Live</div>
+    <div class="content">
+    <h2>Live status</h2>
+    <h3>Technical snapshot of the node.</h3>
+    <p>
+      Values captured directly from the running node at build time.
+      Service SLA computed from a rolling tick log sampled every minute by
+      the internal monitoring stack.
+    </p>
+
+    <div class="status-dial">
+      <svg viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id="statGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.16"/>
+            <stop offset="55%" stop-color="#14b8a6" stop-opacity="0.04"/>
+            <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+          </radialGradient>
+          <path id="statRim" d="M 260 260 m -220 0 a 220 220 0 1 1 440 0 a 220 220 0 1 1 -440 0"/>
+        </defs>
+
+        <!-- glow disc -->
+        <circle cx="260" cy="260" r="240" fill="url(#statGlow)"/>
+
+        <!-- outermost frame -->
+        <circle cx="260" cy="260" r="238" fill="none" stroke="#14b8a6" stroke-width="0.5" opacity="0.3"/>
+
+        <!-- rotating rim text -->
+        <g class="rim-text">
+          <circle cx="260" cy="260" r="230" fill="none" stroke="#14b8a6" stroke-width="1" opacity="0.6"/>
+          <circle cx="260" cy="260" r="207" fill="none" stroke="#14b8a6" stroke-width="0.5" opacity="0.45"/>
+          <text font-family="JetBrains Mono, monospace" font-size="11" fill="#14b8a6" letter-spacing="4.4" opacity="0.9">
+            <textPath href="#statRim" startOffset="0">
+              · LIVE SNAPSHOT · BLOCK HEIGHT · NETWORK STATUS · LIVE SNAPSHOT · BLOCK HEIGHT · NETWORK STATUS ·
+            </textPath>
+          </text>
+          <g stroke="#14b8a6" stroke-width="0.6" opacity="0.5">
+            <circle cx="260" cy="260" r="198" fill="none" stroke-dasharray="0.5 9.3"/>
+          </g>
+        </g>
+
+        <!-- inner dial -->
+        <circle cx="260" cy="260" r="185" fill="none" stroke="#14b8a6" stroke-width="0.8" opacity="0.4"/>
+
+        <!-- cardinal hour marks -->
+        <g stroke="#14b8a6" stroke-linecap="round">
+          <line x1="260" y1="30"  x2="260" y2="46"  stroke-width="2"/>
+          <line x1="490" y1="260" x2="474" y2="260" stroke-width="2"/>
+          <line x1="260" y1="490" x2="260" y2="474" stroke-width="2"/>
+          <line x1="30"  y1="260" x2="46"  y2="260" stroke-width="2"/>
+        </g>
+
+        <!-- secondary hour marks -->
+        <g stroke="#14b8a6" stroke-width="1" stroke-linecap="round" opacity="0.6">
+          <line x1="346.4" y1="45.1"  x2="339.6" y2="59.9"/>
+          <line x1="414.9" y1="113.6" x2="400.1" y2="120.4"/>
+          <line x1="474.9" y1="173.6" x2="459.1" y2="180.4"/>
+          <line x1="474.9" y1="346.4" x2="459.1" y2="339.6"/>
+          <line x1="414.9" y1="406.4" x2="400.1" y2="399.6"/>
+          <line x1="346.4" y1="474.9" x2="339.6" y2="460.1"/>
+          <line x1="173.6" y1="474.9" x2="180.4" y2="460.1"/>
+          <line x1="105.1" y1="406.4" x2="119.9" y2="399.6"/>
+          <line x1="45.1"  y1="346.4" x2="60.9"  y2="339.6"/>
+          <line x1="45.1"  y1="173.6" x2="60.9"  y2="180.4"/>
+          <line x1="105.1" y1="113.6" x2="119.9" y2="120.4"/>
+          <line x1="173.6" y1="45.1"  x2="180.4" y2="59.9"/>
+        </g>
+
+        <!-- fine ticks -->
+        <g stroke="#14b8a6" stroke-width="0.4" opacity="0.3">
+          <circle cx="260" cy="260" r="170" fill="none" stroke-dasharray="0.5 5.35"/>
+        </g>
+
+        <!-- dashed mid ring -->
+        <circle cx="260" cy="260" r="150" fill="none" stroke="#14b8a6" stroke-width="0.5" stroke-dasharray="1 5" opacity="0.55"/>
+
+        <!-- radial metric labels at 4 corners inside the dial -->
+        <!-- top-left: PEERS -->
+        <g font-family="JetBrains Mono, monospace">
+          <text x="100" y="148" font-size="9" fill="#14b8a6" letter-spacing="2">PEERS</text>
+          <text x="100" y="176" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec">210</text>
+          <text x="100" y="190" font-size="8" fill="#5a5a60" letter-spacing="1.5">/ 450 MAX</text>
+        </g>
+
+        <!-- top-right: SLA -->
+        <g font-family="JetBrains Mono, monospace" text-anchor="end">
+          <text x="420" y="148" font-size="9" fill="#14b8a6" letter-spacing="2">SLA · 24H</text>
+          <text x="420" y="176" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec">100<tspan font-size="18" fill="#5eead4">%</tspan></text>
+          <text x="420" y="190" font-size="8" fill="#5a5a60" letter-spacing="1.5">BFT · EXEC · RPC</text>
+        </g>
+
+        <!-- bottom-left: UPTIME -->
+        <g font-family="JetBrains Mono, monospace">
+          <text x="100" y="342" font-size="9" fill="#14b8a6" letter-spacing="2">UPTIME</text>
+          <text x="100" y="370" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec">20<tspan font-size="18" fill="#5eead4">h</tspan></text>
+          <text x="100" y="384" font-size="8" fill="#5a5a60" letter-spacing="1.5">HOST · 16H NODE</text>
+        </g>
+
+        <!-- bottom-right: RAM -->
+        <g font-family="JetBrains Mono, monospace" text-anchor="end">
+          <text x="420" y="342" font-size="9" fill="#14b8a6" letter-spacing="2">RAM</text>
+          <text x="420" y="370" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec">18<tspan font-size="18" fill="#5eead4">%</tspan></text>
+          <text x="420" y="384" font-size="8" fill="#5a5a60" letter-spacing="1.5">11.8 / 62.4 GB</text>
+        </g>
+
+        <!-- center: big block number -->
+        <g text-anchor="middle">
+          <text x="260" y="248" font-family="JetBrains Mono, monospace" font-size="9" fill="#14b8a6" letter-spacing="4">BLOCK HEIGHT</text>
+          <text x="260" y="292" font-family="Space Grotesk, sans-serif" font-size="42" font-weight="700" fill="#ececec">25,564,602</text>
+          <text x="260" y="314" font-family="JetBrains Mono, monospace" font-size="9" fill="#5eead4" letter-spacing="1.5">NETWORK HEAD · 25,564,603 · LAG 1</text>
+          <text x="260" y="330" font-family="JetBrains Mono, monospace" font-size="8" fill="#5a5a60" letter-spacing="1.5">IN SYNC · MONAD TESTNET · CHAIN 10143</text>
+        </g>
+
+        <!-- small decorative diamond outline behind the center -->
+        <path d="M 260 224 L 330 260 L 260 296 L 190 260 Z" fill="none" stroke="#14b8a6" stroke-width="0.6" opacity="0.3" stroke-linejoin="round"/>
+
+        <!-- gnomon sweeping -->
+        <g class="gnomon-shadow" style="transform-origin: 260px 260px;">
+          <line x1="260" y1="260" x2="260" y2="85" stroke="#5eead4" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="260" y1="260" x2="260" y2="85" stroke="#14b8a6" stroke-width="8" stroke-linecap="round" opacity="0.1"/>
+        </g>
+
+        <!-- center hub -->
+        <circle cx="260" cy="260" r="4" fill="#5eead4"/>
+
+        <!-- corner marks -->
+        <g stroke="#14b8a6" stroke-width="0.8" opacity="0.4" fill="none">
+          <path d="M 20 20 L 20 60 M 20 20 L 60 20"/>
+          <path d="M 500 20 L 500 60 M 500 20 L 460 20"/>
+          <path d="M 20 500 L 20 460 M 20 500 L 60 500"/>
+          <path d="M 500 500 L 500 460 M 500 500 L 460 500"/>
+        </g>
+      </svg>
+
+      <div class="status-legend">
+        <div class="leg-item">
+          <span class="leg-k">disk /</span>
+          <span class="leg-v">6% · 48 / 854 GB</span>
+        </div>
+        <div class="leg-item">
+          <span class="leg-k">triedb</span>
+          <span class="leg-v">6.80% · 121 / 1750 GB</span>
+        </div>
+        <div class="leg-item">
+          <span class="leg-k">nvme temps</span>
+          <span class="leg-v">34° 35° 37° 37°</span>
+        </div>
+        <div class="leg-item">
+          <span class="leg-k">ntp sync</span>
+          <span class="leg-v ok">yes</span>
+        </div>
+        <div class="leg-item">
+          <span class="leg-k">client</span>
+          <span class="leg-v">monad 0.14.1 · unmodified</span>
+        </div>
+        <div class="leg-foot">snapshot · 2026-04-15 09:00 UTC</div>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <section id="ops">
+    <div class="num"><span class="big">04</span>Ops</div>
+    <div class="content">
+    <h2>Monitoring &amp; Operations</h2>
+    <h3>Alerting that wakes me up before delegators do.</h3>
+    <p>
+      The validator is monitored continuously by a custom Telegram-integrated
+      stack — systemd-level failure alerts, cron-based periodic health checks,
+      and a long-poll command bot for remote status queries. Anti-spam
+      suppression keeps incidents surfacing cleanly without noise.
+    </p>
+
+    <ul class="ops">
+      <li><span><b>18 health checks</b> on a 5-minute cron — services, RPC liveness, block progress, peer count, disk, TrieDB capacity, NVMe temperature, NTP drift, kernel errors, SSH anomalies.</span></li>
+      <li><span><b>Hourly deep checks</b> for NVMe SMART health, wear level, critical warnings, pending security updates and new client releases.</span></li>
+      <li><span><b>systemd OnFailure</b> alerts the moment monad-bft, monad-execution or monad-rpc crash or exit unexpectedly.</span></li>
+      <li><span><b>SLA tracker</b> with per-minute sampling and rolling 1 h / 24 h / 7 d uptime percentages.</span></li>
+      <li><span><b>Interactive Telegram bot</b> — 20+ read-only and destructive (confirmation-gated) commands for remote operations.</span></li>
+      <li><span><b>Hardened firewall</b> — iptables v4 + v6 with policy DROP, only SSH, P2P (8000 tcp/udp, 8001 udp) and ICMP exposed.</span></li>
+      <li><span><b>OpenTelemetry</b> metrics collector bound strictly to localhost, scraped by the internal monitoring stack only.</span></li>
+      <li><span><b>Documented runbook</b> and persistent state tracker for reproducible recovery and on-boarding.</span></li>
+    </ul>
+      </div>
+  </section>
+
+  <section id="identity">
+    <div class="num"><span class="big">05</span>Keys</div>
+    <div class="content">
+    <h2>Validator identity</h2>
+    <h3>On-chain references.</h3>
+    <p>
+      These are the public node identifiers and the EVM control address
+      used for registration and governance operations.
+    </p>
+
+    <div class="identity">
+      <div class="row">
+        <div class="k">NODE NAME</div>
+        <div class="v">shadowoftime</div>
+      </div>
+      <div class="row">
+        <div class="k">SECP PUBKEY</div>
+        <div class="v">029337dc788d1dd262280524a47cefa68b7ea5651016279b54cc20305a2e1aa7b6</div>
+      </div>
+      <div class="row">
+        <div class="k">BLS PUBKEY</div>
+        <div class="v">86902ce27a2bf311007e3b625243c37d52dc4a06ca96a394781408b043fea8a108ffd5167602f9c13e2e2fb27a7b7e21</div>
+      </div>
+      <div class="row">
+        <div class="k">EVM ADDRESS</div>
+        <div class="v"><a href="https://testnet.monadscan.com/address/0x92936497B6ad2BA84b3f7Af22C9afF15f00b13B5" target="_blank" rel="noopener">0x92936497B6ad2BA84b3f7Af22C9afF15f00b13B5</a></div>
+      </div>
+      <div class="row">
+        <div class="k">NETWORK</div>
+        <div class="v">Monad Testnet · chain_id 10143</div>
+      </div>
+      <div class="row">
+        <div class="k">EXPLORERS</div>
+        <div class="v">
+          <a href="https://testnet.monadvision.com/" target="_blank" rel="noopener">MonadVision</a> ·
+          <a href="https://testnet.monadscan.com/" target="_blank" rel="noopener">Monadscan</a> ·
+          <a href="https://monad-testnet.socialscan.io/" target="_blank" rel="noopener">Socialscan</a>
+        </div>
+      </div>
+    </div>
+      </div>
+  </section>
+
+  <nav class="contact-bar" id="contact" aria-label="Contact">
+    <a href="https://github.com/ShadowOfTime1" target="_blank" rel="noopener" aria-label="GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <a href="https://x.com/RomanKarpenk" target="_blank" rel="noopener" aria-label="X (Twitter)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <a href="https://t.me/shadowoftime" target="_blank" rel="noopener" aria-label="Telegram">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+    </a>
+  </nav>
+
+  <footer>
+    <span class="clock">⏳</span>
+    built in the shadows of time · ©2026 shadowoftime ·
+    <a href="https://monad.xyz" target="_blank" rel="noopener">monad.xyz</a>
+  </footer>
+
+  </main>
+</div>
+</body>
+</html>
