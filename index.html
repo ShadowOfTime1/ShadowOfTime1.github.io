@@ -266,6 +266,111 @@ body::before {
 }
 .hero .meta .dot { color: var(--ok); }
 
+/* ---------- Live network stats bar ---------- */
+.stats-bar {
+  max-width: 680px;
+  margin: 0 auto 4rem;
+  padding: 1.8rem 2rem 1.4rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(20,184,166,0.045), rgba(20,184,166,0.01) 80%);
+  position: relative;
+  text-align: center;
+}
+.stats-bar .tl,
+.stats-bar .tr,
+.stats-bar .bl,
+.stats-bar .br {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--accent);
+  opacity: 0.7;
+}
+.stats-bar .tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.stats-bar .tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+.stats-bar .bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+.stats-bar .br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+.stats-bar .label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 1.4rem;
+}
+
+.stats-bar .stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.stats-bar .stat {
+  padding: 0 0.8rem;
+  position: relative;
+}
+.stats-bar .stat + .stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 1px;
+  background: var(--border);
+}
+.stats-bar .stat .num {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.45rem;
+  background: linear-gradient(180deg, #fff, var(--accent-2) 80%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px var(--accent-glow);
+}
+.stats-bar .stat .lbl {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+
+.stats-bar .foot {
+  margin-top: 1.3rem;
+  padding-top: 0.9rem;
+  border-top: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.stats-bar .foot .live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+  animation: pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.stats-bar .foot a { color: var(--accent-2); border: none; }
+.stats-bar .foot a:hover { color: var(--accent); }
+
+@media (max-width: 500px) {
+  .stats-bar .stat + .stat::before { display: none; }
+  .stats-bar .stats-row { gap: 1rem; }
+}
+
 .hero .cta {
   margin-top: 2rem;
   display: flex;
@@ -1226,6 +1331,29 @@ footer .clock {
     </div>
   </header>
 
+  <div class="stats-bar" id="stats-bar">
+    <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+    <div class="label">Monad network · live</div>
+    <div class="stats-row">
+      <div class="stat">
+        <div class="num" id="stat-mainnet">217</div>
+        <div class="lbl">Mainnet<br/>validators</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="stat-testnet">257</div>
+        <div class="lbl">Testnet<br/>validators</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="stat-vdp">Wave&nbsp;2</div>
+        <div class="lbl">VDP<br/>active</div>
+      </div>
+    </div>
+    <div class="foot">
+      <span class="live-dot"></span>
+      <span id="stats-source">via <a href="https://github.com/monad-developers/validator-info" target="_blank" rel="noopener">validator-info</a> registry</span>
+    </div>
+  </div>
+
   <section id="about">
     <div class="num"><span class="big">01</span>About</div>
     <div class="content">
@@ -1578,5 +1706,65 @@ footer .clock {
 
   </main>
 </div>
+
+<script>
+(function () {
+  const base = 'https://api.github.com/repos/monad-developers/validator-info/contents/';
+  const endpoints = [
+    { url: base + 'mainnet', id: 'stat-mainnet' },
+    { url: base + 'testnet', id: 'stat-testnet' },
+  ];
+
+  const setNum = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const n = parseInt(val, 10);
+    if (!Number.isFinite(n)) return;
+    // Count-up animation
+    const from = parseInt(el.textContent.replace(/,/g, ''), 10) || 0;
+    const steps = 18;
+    let i = 0;
+    const tick = () => {
+      i++;
+      const v = Math.round(from + (n - from) * (i / steps));
+      el.textContent = v.toLocaleString('en-US');
+      if (i < steps) requestAnimationFrame(tick);
+      else el.textContent = n.toLocaleString('en-US');
+    };
+    requestAnimationFrame(tick);
+  };
+
+  Promise.all(endpoints.map(e =>
+    fetch(e.url, { headers: { 'Accept': 'application/vnd.github+json' } })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+      .then(list => ({
+        id: e.id,
+        count: Array.isArray(list)
+          ? list.filter(f => f && f.name && f.name.endsWith('.json') && f.type === 'file').length
+          : null,
+      }))
+  )).then(results => {
+    let ok = true;
+    results.forEach(r => {
+      if (r.count == null) { ok = false; return; }
+      setNum(r.id, r.count);
+    });
+    if (ok) {
+      const src = document.getElementById('stats-source');
+      if (src) {
+        const now = new Date();
+        const hh = String(now.getUTCHours()).padStart(2, '0');
+        const mm = String(now.getUTCMinutes()).padStart(2, '0');
+        src.innerHTML = 'via <a href="https://github.com/monad-developers/validator-info" target="_blank" rel="noopener">validator-info</a> · fetched ' + hh + ':' + mm + ' UTC';
+      }
+    }
+  }).catch(() => {
+    // Silent fallback — keep the baked-in values as a cached display.
+    const src = document.getElementById('stats-source');
+    if (src) src.innerHTML = 'via <a href="https://github.com/monad-developers/validator-info" target="_blank" rel="noopener">validator-info</a> · cached';
+  });
+})();
+</script>
+
 </body>
 </html>
