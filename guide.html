@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Monad full node install guide — shadowoftime</title>
+<meta name="description" content="A practical walkthrough of installing a Monad testnet full node on a dedicated Ubuntu server, including real-world pitfalls the official docs don't emphasize." />
+<meta name="theme-color" content="#14b8a6" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #05050a;
+  --bg-card: #0e0e16;
+  --bg-code: #020206;
+  --bg-card-hover: #16161f;
+  --border: #242430;
+  --fg: #ececec;
+  --fg-dim: #b0b0b5;
+  --fg-muted: #6e6e78;
+  --accent: #14b8a6;
+  --accent-2: #5eead4;
+  --accent-glow: rgba(20, 184, 166, 0.38);
+  --warn: #facc15;
+  --crit: #f87171;
+  --ok: #4ade80;
+  --radius: 8px;
+  --font-sans: "Inter", -apple-system, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  position: relative;
+  background-image:
+    radial-gradient(ellipse at top, rgba(20, 184, 166, 0.08), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(20, 184, 166, 0.04), transparent 50%),
+    linear-gradient(rgba(20, 184, 166, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 184, 166, 0.028) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+  background-attachment: fixed;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent 0%, transparent 85%, rgba(5,5,10,0.9) 100%),
+    radial-gradient(circle at center, transparent 20%, rgba(5,5,10,0.5) 85%);
+  z-index: 0;
+}
+a { color: var(--accent-2); text-decoration: none; border-bottom: 1px dotted var(--accent); }
+a:hover { color: var(--accent); }
+
+.layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 3rem;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  align-self: start;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  padding: 1.5rem 0;
+  font-size: 0.9rem;
+}
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.5rem;
+  text-decoration: none;
+  border: none;
+}
+.sidebar .brand svg {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px var(--accent-glow));
+}
+.sidebar .brand .name {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+.sidebar .brand .name small {
+  display: block;
+  color: var(--fg-muted);
+  font-size: 0.62rem;
+  margin-top: 3px;
+  letter-spacing: 0.1em;
+}
+.sidebar .sep {
+  border: none;
+  border-top: 1px dashed var(--border);
+  margin: 1rem 0;
+}
+.sidebar .back {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: inline-block;
+  padding: 0.4rem 0;
+  border: none;
+}
+.sidebar .back:hover { color: var(--accent); }
+.sidebar .toc {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+}
+.sidebar .toc li { margin: 0; }
+.sidebar .toc a {
+  display: block;
+  padding: 0.4rem 0 0.4rem 0.75rem;
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-left: 1px solid transparent;
+  margin-left: -0.75rem;
+  border-bottom: none;
+  transition: all 0.2s ease;
+}
+.sidebar .toc a .n {
+  display: inline-block;
+  width: 1.6em;
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+}
+.sidebar .toc a:hover {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.sidebar .meta {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1.9;
+}
+
+@media (max-width: 880px) {
+  .layout { grid-template-columns: 1fr; gap: 1rem; }
+  .sidebar {
+    position: static;
+    max-height: none;
+    padding: 1rem 0 1.5rem;
+    border-bottom: 1px dashed var(--border);
+  }
+  .sidebar .toc { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; }
+  .sidebar .toc a { border-left: none; padding-left: 0; margin-left: 0; }
+  .sidebar .meta { display: none; }
+}
+
+/* ---------- Main content ---------- */
+.main { min-width: 0; }
+
+.hero-g {
+  padding: 2rem 0 3rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+.hero-g .tag {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 0.8rem;
+}
+.hero-g h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  background: linear-gradient(180deg, #fff 0%, var(--accent-2) 80%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero-g .lede {
+  color: var(--fg-dim);
+  font-size: 1.05rem;
+  max-width: 640px;
+  line-height: 1.7;
+}
+.hero-g .meta-row {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+section.step {
+  padding: 2.5rem 0 1rem;
+  border-top: 1px dashed var(--border);
+  position: relative;
+}
+section.step:first-of-type { border-top: none; padding-top: 0; }
+section.step h2 {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+  color: var(--fg);
+}
+section.step h2 .stepn {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  background: rgba(20, 184, 166, 0.08);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-right: 0.8rem;
+  vertical-align: middle;
+  position: relative;
+  top: -3px;
+}
+section.step h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin-top: 1.8rem;
+  margin-bottom: 0.6rem;
+}
+section.step p {
+  color: var(--fg-dim);
+  max-width: 720px;
+  margin-bottom: 1rem;
+}
+section.step ul, section.step ol {
+  color: var(--fg-dim);
+  max-width: 720px;
+  margin: 0.8rem 0 1rem 1.5rem;
+}
+section.step li { margin-bottom: 0.3rem; }
+section.step b { color: var(--fg); font-weight: 600; }
+section.step code.inline {
+  font-family: var(--font-mono);
+  font-size: 0.87em;
+  color: var(--accent-2);
+  background: rgba(20, 184, 166, 0.06);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(20, 184, 166, 0.15);
+}
+
+/* ---------- Code block ---------- */
+pre.code {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+  margin: 1rem 0 1.4rem;
+  max-width: 720px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: #d4d4d8;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(20,184,166,0.04), 0 0 24px -8px var(--accent-glow);
+}
+pre.code::before {
+  content: attr(data-label);
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  font-size: 0.62rem;
+  color: var(--fg-muted);
+  background: var(--bg);
+  padding: 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+pre.code .pmt { color: var(--accent); }
+pre.code .cmt { color: var(--fg-muted); font-style: italic; }
+pre.code .str { color: var(--accent-2); }
+
+/* ---------- Callout boxes ---------- */
+.note {
+  max-width: 720px;
+  padding: 1rem 1.2rem 1rem 1.4rem;
+  margin: 1.2rem 0;
+  border-left: 3px solid var(--accent);
+  background: rgba(20, 184, 166, 0.04);
+  font-size: 0.94rem;
+  color: var(--fg-dim);
+  border-radius: 0 4px 4px 0;
+}
+.note .nhead {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+.note b { color: var(--fg); }
+.note.warn {
+  border-left-color: var(--warn);
+  background: rgba(250, 204, 21, 0.04);
+}
+.note.warn .nhead { color: var(--warn); }
+.note.crit {
+  border-left-color: var(--crit);
+  background: rgba(248, 113, 113, 0.04);
+}
+.note.crit .nhead { color: var(--crit); }
+
+/* ---------- Footer ---------- */
+footer.gfoot {
+  margin-top: 4rem;
+  padding: 2rem 0 1rem;
+  border-top: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fg-muted);
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+footer.gfoot .clock {
+  display: inline-block;
+  margin-right: 0.4rem;
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+footer.gfoot a { border: none; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <a href="index.html" class="brand">
+      <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="200" cy="200" r="178" fill="none" stroke="#14b8a6" stroke-width="8" opacity="0.7"/>
+        <circle cx="200" cy="200" r="150" fill="none" stroke="#14b8a6" stroke-width="4" stroke-dasharray="4 20" opacity="0.5"/>
+        <g fill="none" stroke="#14b8a6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 200 110 L 270 200 L 200 290 L 130 200 Z" stroke-width="10" opacity="0.85"/>
+          <path d="M 168 230 L 168 170 L 200 210 L 232 170 L 232 230" stroke-width="10" opacity="0.95"/>
+        </g>
+        <line x1="200" y1="200" x2="200" y2="75" stroke="#5eead4" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="200" cy="200" r="16" fill="#5eead4"/>
+      </svg>
+      <span class="name">shadowoftime<small>install guide</small></span>
+    </a>
+
+    <a href="index.html" class="back">← back to profile</a>
+
+    <hr class="sep">
+
+    <ol class="toc">
+      <li><a href="#intro"><span class="n">00</span>Intro</a></li>
+      <li><a href="#prereq"><span class="n">01</span>Prerequisites</a></li>
+      <li><a href="#system"><span class="n">02</span>System prep</a></li>
+      <li><a href="#pkg"><span class="n">03</span>Monad package</a></li>
+      <li><a href="#user"><span class="n">04</span>User &amp; dirs</a></li>
+      <li><a href="#triedb"><span class="n">05</span>TrieDB</a></li>
+      <li><a href="#fw"><span class="n">06</span>Firewall</a></li>
+      <li><a href="#otel"><span class="n">07</span>OTEL</a></li>
+      <li><a href="#config"><span class="n">08</span>Configs</a></li>
+      <li><a href="#keys"><span class="n">09</span>Keystores</a></li>
+      <li><a href="#name"><span class="n">10</span>Node ID</a></li>
+      <li><a href="#snapshot"><span class="n">11</span>Hard reset</a></li>
+      <li><a href="#start"><span class="n">12</span>Start node</a></li>
+      <li><a href="#pitfalls"><span class="n">13</span>Pitfalls</a></li>
+    </ol>
+
+    <div class="meta">
+      shadowoftime / monad<br/>
+      updated 2026-04-15<br/>
+      v1.0
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <header class="hero-g">
+      <div class="tag">Install guide · Monad testnet · v1.0</div>
+      <h1>Running a Monad full node — without stepping on the rakes</h1>
+      <p class="lede">
+        This is a practical, opinionated walkthrough of bringing up a Monad
+        testnet full node on a dedicated Ubuntu server. It follows the
+        official documentation where the official docs are clear, and fills
+        in the rakes the official docs politely step around — of which there
+        are several.
+      </p>
+      <div class="meta-row">
+        <span>target · testnet · chain 10143</span>
+        <span>client · monad 0.14.1</span>
+        <span>os · ubuntu 24.04 LTS</span>
+      </div>
+    </header>
+
+    <section class="step" id="intro">
+      <h2><span class="stepn">00</span>Intro</h2>
+      <p>
+        Monad's documentation at <a href="https://docs.monad.xyz/node-ops/full-node-installation" target="_blank" rel="noopener">docs.monad.xyz/node-ops/full-node-installation</a>
+        describes a clean happy path. The happy path is accurate as far as it
+        goes — but there are a handful of places where a first-time operator
+        can do exactly what the docs say and end up with a node that either
+        will not start, will not accept external peers, or will silently run
+        with no firewall at all. This guide is the happy path <i>plus</i>
+        the four or five gotchas that cost me several hours the first time
+        around.
+      </p>
+      <p>
+        Nothing here is hardware-specific. Any reasonably modern bare-metal
+        server with enough NVMe and 64 GB+ RAM will do. Every command is
+        given verbatim — copy, paste, verify, move on.
+      </p>
+      <div class="note">
+        <span class="nhead">What you'll have at the end</span>
+        A Monad testnet full node, synced from a recent snapshot to the
+        current chain tip, with a clean firewall, isolated TrieDB, working
+        RPC on <code class="inline">localhost:8080</code>, and an
+        OpenTelemetry metrics endpoint on <code class="inline">127.0.0.1:8889</code>.
+      </div>
+    </section>
+
+    <section class="step" id="prereq">
+      <h2><span class="stepn">01</span>Prerequisites</h2>
+      <p>Before you start, confirm you have all of the following:</p>
+
+      <h3>Hardware</h3>
+      <ul>
+        <li>x86_64 CPU, <b>16+ physical cores</b> recommended. High single-thread performance matters for execution.</li>
+        <li><b>64 GB RAM</b> (DDR5 ECC if you can get it). Less than 64 GB is very much not recommended.</li>
+        <li><b>At least 2 NVMe drives</b>, ideally 3 or 4. You want the TrieDB, the ledger and the OS on separate devices so nothing ever contends for the same queue. Enterprise-class NVMe strongly preferred.</li>
+        <li><b>Dedicated NVMe for TrieDB</b> — at least 1.5 TB usable capacity. It will grow over time.</li>
+        <li><b>1 Gbps+ network</b>, static public IPv4. No NAT, no shared tenancy.</li>
+      </ul>
+
+      <h3>Software</h3>
+      <ul>
+        <li>Ubuntu 24.04 LTS (other Debian-family distros may work but are not what the package is tested on).</li>
+        <li>Root / sudo access.</li>
+        <li>Somewhere safe, off-server, to keep encrypted key backups.</li>
+      </ul>
+
+      <div class="note warn">
+        <span class="nhead">SMT / Hyper-Threading</span>
+        The official docs recommend disabling SMT in BIOS. This reduces
+        some noisy-neighbour effects between logical cores. In practice
+        many operators run with SMT on and accept the trade-off. Make the
+        call consciously — if you later see odd performance regressions,
+        your first suspect is SMT.
+      </div>
+    </section>
+
+    <section class="step" id="system">
+      <h2><span class="stepn">02</span>System preparation</h2>
+      <p>Fresh-out-of-the-box Ubuntu. Update, reboot if needed, install basic tools.</p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>apt update
+<span class="pmt"># </span>apt -y full-upgrade
+<span class="pmt"># </span>apt -y install curl nvme-cli aria2 jq gpg smartmontools</pre>
+
+      <p>
+        If <code class="inline">apt upgrade</code> installed a new kernel,
+        reboot before continuing. Make sure <code class="inline">timedatectl status</code>
+        reports <code class="inline">System clock synchronized: yes</code> — BFT
+        consensus is sensitive to clock drift.
+      </p>
+    </section>
+
+    <section class="step" id="pkg">
+      <h2><span class="stepn">03</span>Install the monad package</h2>
+      <p>
+        Monad binaries come from the Category Labs apt repository. The
+        package contains <code class="inline">monad-node</code>,
+        <code class="inline">monad</code> (execution),
+        <code class="inline">monad-rpc</code>,
+        <code class="inline">monad-mpt</code>,
+        <code class="inline">monad-cli</code>,
+        <code class="inline">monad-keystore</code>,
+        <code class="inline">monad-sign-name-record</code> and a set of
+        systemd units.
+      </p>
+
+      <pre class="code" data-label="bash"><span class="cmt"># fetch repo signing key</span>
+<span class="pmt"># </span>curl -fsSL https://pkg.category.xyz/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/category-labs.gpg
+
+<span class="cmt"># add repo</span>
+<span class="pmt"># </span>echo <span class="str">"deb [signed-by=/etc/apt/keyrings/category-labs.gpg] https://pkg.category.xyz/apt noble main"</span> \
+      &gt; /etc/apt/sources.list.d/category-labs.list
+
+<span class="pmt"># </span>apt update
+<span class="pmt"># </span>apt -y install monad=0.14.1
+<span class="pmt"># </span>apt-mark hold monad</pre>
+
+      <p>
+        The <code class="inline">apt-mark hold</code> is important — you
+        don't want an unattended upgrade surprising your running node with
+        a new binary. Upgrade consciously, one step at a time.
+      </p>
+    </section>
+
+    <section class="step" id="user">
+      <h2><span class="stepn">04</span>User and directories</h2>
+      <p>The systemd units expect a <code class="inline">monad</code> service user.</p>
+      <pre class="code" data-label="bash"><span class="pmt"># </span>useradd -m -s /bin/bash monad
+<span class="pmt"># </span>sudo -u monad mkdir -p /home/monad/monad-bft/{config,ledger,config/forkpoint,config/validators}
+<span class="pmt"># </span>mkdir -p /opt/monad/{backup,scripts}
+<span class="pmt"># </span>chown -R root:root /opt/monad</pre>
+      <p>
+        Later, for security, consider changing the monad shell to
+        <code class="inline">/usr/sbin/nologin</code>. systemd units start
+        the services regardless of login shell.
+      </p>
+    </section>
+
+    <section class="step" id="triedb">
+      <h2><span class="stepn">05</span>TrieDB on dedicated NVMe</h2>
+      <p>
+        TrieDB is Monad's Merkle-Patricia Trie store. It lives directly on
+        a raw block device — <i>not</i> a filesystem. Pick one NVMe drive
+        that will be dedicated to it.
+      </p>
+      <p>First, identify your devices:</p>
+      <pre class="code" data-label="bash"><span class="pmt"># </span>lsblk -o NAME,SIZE,MODEL,TYPE</pre>
+
+      <p>
+        Pick the NVMe that will host the TrieDB (in this guide we'll call
+        it <code class="inline">/dev/nvme2n1</code> — substitute your own).
+        Create a GPT partition table and one partition spanning the disk:
+      </p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>parted -s /dev/nvme2n1 mklabel gpt
+<span class="pmt"># </span>parted -s /dev/nvme2n1 mkpart triedb 0% 100%
+<span class="pmt"># </span>partprobe /dev/nvme2n1
+<span class="pmt"># </span>lsblk -no PARTUUID /dev/nvme2n1p1</pre>
+
+      <p>
+        Copy that PARTUUID. Create a udev rule so the partition always
+        appears at the stable path <code class="inline">/dev/triedb</code>,
+        regardless of nvme reordering:
+      </p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>cat &gt; /etc/udev/rules.d/99-triedb.rules &lt;&lt;<span class="str">EOF</span>
+SUBSYSTEM=="block", ENV{ID_PART_ENTRY_UUID}=="<span class="str">&lt;YOUR-PARTUUID&gt;</span>", SYMLINK+="triedb"
+<span class="str">EOF</span>
+<span class="pmt"># </span>udevadm control --reload
+<span class="pmt"># </span>udevadm trigger /dev/nvme2n1p1
+<span class="pmt"># </span>ls -la /dev/triedb   <span class="cmt"># must show a symlink to nvme2n1p1</span></pre>
+
+      <p>Initialize the TrieDB via the systemd oneshot unit the package ships:</p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>systemctl start monad-mpt.service</pre>
+
+      <div class="note">
+        <span class="nhead">Note</span>
+        <code class="inline">monad-mpt.service</code> is a <code class="inline">Type=oneshot</code>
+        unit. It runs once, initializes the database header on the device,
+        and exits. It's normal for <code class="inline">is-active</code> to
+        show <code class="inline">inactive (dead)</code> after it has finished.
+      </div>
+    </section>
+
+    <section class="step" id="fw">
+      <h2><span class="stepn">06</span>Firewall &mdash; the first rake</h2>
+      <p>
+        This is the first place the official docs will quietly betray you.
+        Two very different firewall management packages exist on Ubuntu —
+        <b>ufw</b> and <b>iptables-persistent</b>. They are
+        <b>mutually exclusive</b> at the apt level. Installing one silently
+        removes the other, taking its rules with it.
+      </p>
+
+      <div class="note crit">
+        <span class="nhead">The rake</span>
+        If you configure ufw rules first, and then run
+        <code class="inline">apt install iptables-persistent</code>, apt
+        will quietly uninstall ufw and your carefully built ruleset
+        <b>evaporates</b>. Your node ends up exposed on every port, your
+        INPUT policy defaults to <code class="inline">ACCEPT</code>, and
+        you won't notice until the next firewall audit.
+      </div>
+
+      <p>
+        Pick <b>one</b> tool and commit. In this guide we use pure
+        iptables with <code class="inline">iptables-persistent</code>,
+        because it's the lower-level option and composes better with
+        custom rules:
+      </p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>DEBIAN_FRONTEND=noninteractive apt -y install iptables-persistent
+
+<span class="cmt"># base rules</span>
+<span class="pmt"># </span>iptables -P INPUT DROP
+<span class="pmt"># </span>iptables -P FORWARD DROP
+<span class="pmt"># </span>iptables -P OUTPUT ACCEPT
+<span class="pmt"># </span>iptables -A INPUT -i lo -j ACCEPT
+<span class="pmt"># </span>iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+<span class="pmt"># </span>iptables -A INPUT -m conntrack --ctstate INVALID -j DROP
+
+<span class="cmt"># anti-flood on BFT UDP (small packets)</span>
+<span class="pmt"># </span>iptables -A INPUT -p udp --dport 8000 -m length --length 0:1400 -j DROP
+
+<span class="cmt"># SSH, BFT P2P, ICMP</span>
+<span class="pmt"># </span>iptables -A INPUT -p tcp --dport 22   -j ACCEPT
+<span class="pmt"># </span>iptables -A INPUT -p tcp --dport 8000 -j ACCEPT
+<span class="pmt"># </span>iptables -A INPUT -p udp --dport 8000 -j ACCEPT
+<span class="pmt"># </span>iptables -A INPUT -p udp --dport 8001 -j ACCEPT
+<span class="pmt"># </span>iptables -A INPUT -p icmp -j ACCEPT
+
+<span class="cmt"># mirror into ip6tables: lo, est/rel, ICMPv6, SSH — drop everything else</span>
+<span class="pmt"># </span>ip6tables -P INPUT DROP
+<span class="pmt"># </span>ip6tables -A INPUT -i lo -j ACCEPT
+<span class="pmt"># </span>ip6tables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+<span class="pmt"># </span>ip6tables -A INPUT -m conntrack --ctstate INVALID -j DROP
+<span class="pmt"># </span>ip6tables -A INPUT -p ipv6-icmp -j ACCEPT
+<span class="pmt"># </span>ip6tables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+<span class="cmt"># persist</span>
+<span class="pmt"># </span>netfilter-persistent save</pre>
+
+      <div class="note warn">
+        <span class="nhead">Before applying</span>
+        If you are SSH'd in over port 22, it's a good idea to schedule an
+        <code class="inline">at</code> job that reverts to
+        <code class="inline">iptables -P INPUT ACCEPT</code> in 5 minutes — so
+        if you mis-type a rule and lock yourself out, you'll be able to
+        reconnect shortly after.
+      </div>
+    </section>
+
+    <section class="step" id="otel">
+      <h2><span class="stepn">07</span>OpenTelemetry collector</h2>
+      <p>
+        Monad's services emit metrics and traces via OTLP. Run a local
+        OpenTelemetry collector and have the node talk to it on
+        <code class="inline">127.0.0.1:4317</code>.
+      </p>
+      <pre class="code" data-label="bash"><span class="pmt"># </span>curl -L -o /tmp/otelcol.deb \
+    https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.139.0/otelcol_0.139.0_linux_amd64.deb
+<span class="pmt"># </span>dpkg -i /tmp/otelcol.deb
+<span class="pmt"># </span>cp /opt/monad/scripts/otel-config.yaml /etc/otelcol/config.yaml
+<span class="pmt"># </span>systemctl enable --now otelcol</pre>
+      <p>
+        The default config binds OTLP receivers to
+        <code class="inline">127.0.0.1</code> only, and exposes a Prometheus
+        endpoint on <code class="inline">0.0.0.0:8889</code>. Make sure your
+        firewall blocks <code class="inline">8889</code> from outside (our
+        ruleset above does; if you use different rules, double-check).
+      </p>
+    </section>
+
+    <section class="step" id="config">
+      <h2><span class="stepn">08</span>Testnet configs</h2>
+      <p>Fetch the testnet <code class="inline">.env</code> template and <code class="inline">node.toml</code> template from the Monad infrastructure bucket:</p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>sudo -u monad curl -fsSL -o /home/monad/.env \
+    https://bucket.monadinfra.com/config/testnet/latest/.env.example
+<span class="pmt"># </span>sudo -u monad curl -fsSL -o /home/monad/monad-bft/config/node.toml \
+    https://bucket.monadinfra.com/config/testnet/latest/full-node-node.toml
+<span class="pmt"># </span>chmod 600 /home/monad/.env
+<span class="pmt"># </span>chown monad:monad /home/monad/.env /home/monad/monad-bft/config/node.toml</pre>
+
+      <p>
+        Do <b>not</b> fill in the placeholders yet — we need keystores and
+        a signed name record first. The placeholders are
+        <code class="inline">&lt;NODE_NAME&gt;</code>,
+        <code class="inline">&lt;IP&gt;:&lt;PORT&gt;</code> and
+        <code class="inline">&lt;NAME_RECORD_SIG&gt;</code>.
+      </p>
+    </section>
+
+    <section class="step" id="keys">
+      <h2><span class="stepn">09</span>Keystores (SECP &amp; BLS)</h2>
+      <p>
+        The node identifies itself on the network by two keypairs — a
+        SECP256k1 key for peer discovery / networking, and a BLS12-381 key
+        for consensus signatures. Generate a random keystore password,
+        then generate both keys:
+      </p>
+
+      <pre class="code" data-label="bash"><span class="cmt"># generate + persist the keystore password</span>
+<span class="pmt"># </span>KSPW=$(openssl rand -base64 32)
+<span class="pmt"># </span>echo <span class="str">"KEYSTORE_PASSWORD=$KSPW"</span> &gt;&gt; /home/monad/.env
+<span class="pmt"># </span>echo <span class="str">"Keystore password: $KSPW"</span> &gt; /opt/monad/backup/keystore-password-backup
+<span class="pmt"># </span>chmod 600 /opt/monad/backup/keystore-password-backup
+
+<span class="cmt"># generate keystores as the monad user</span>
+<span class="pmt"># </span>sudo -u monad bash -c <span class="str">'</span>
+    source /home/monad/.env
+    monad-keystore new secp --password "$KEYSTORE_PASSWORD" \
+        --keystore-path /home/monad/monad-bft/config/id-secp
+    monad-keystore new bls --password "$KEYSTORE_PASSWORD" \
+        --keystore-path /home/monad/monad-bft/config/id-bls
+<span class="str">'</span>
+
+<span class="cmt"># back them up immediately</span>
+<span class="pmt"># </span>cp /home/monad/monad-bft/config/id-secp /opt/monad/backup/secp-backup
+<span class="pmt"># </span>cp /home/monad/monad-bft/config/id-bls  /opt/monad/backup/bls-backup
+<span class="pmt"># </span>chmod 600 /opt/monad/backup/*-backup</pre>
+
+      <div class="note crit">
+        <span class="nhead">Never regenerate these keys</span>
+        The SECP and BLS keys <b>are the identity of your node</b>. If you
+        regenerate them, you have a new node — peers that know your old
+        identity stop talking to you, and any reputation or delegation
+        you've accumulated is gone. Before touching these files, check
+        <code class="inline">ls /home/monad/monad-bft/config/id-secp</code> — if it
+        exists, restore from backup, don't create new.
+      </div>
+
+      <p>
+        Now is also the right time to exfiltrate the
+        <code class="inline">/opt/monad/backup/*</code> files <b>off</b> the
+        server, to a safe location (password manager, external storage,
+        trusted custodian). Treat them like private keys — because they
+        are.
+      </p>
+    </section>
+
+    <section class="step" id="name">
+      <h2><span class="stepn">10</span>node.toml + name record signature</h2>
+      <p>
+        The peer discovery protocol verifies that a node claiming an IP
+        really holds the SECP private key for its advertised identity, by
+        signing a "name record" — IP, port, sequence number — with the
+        SECP key. Create this signature and place it in
+        <code class="inline">node.toml</code>.
+      </p>
+      <p>First fill in the human-editable fields. Pick a short node name:</p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>IP=$(curl -s4 ifconfig.me)
+<span class="pmt"># </span>sed -i \
+    -e <span class="str">"s|node_name = \"&lt;NODE_NAME&gt;\"|node_name = \"my-node\"|"</span> \
+    -e <span class="str">"s|self_address = \"&lt;IP&gt;:&lt;PORT&gt;\"|self_address = \"$IP:8000\"|"</span> \
+    -e <span class="str">"s|self_record_seq_num = 0|self_record_seq_num = 1|"</span> \
+    /home/monad/monad-bft/config/node.toml</pre>
+
+      <p>Then sign the name record:</p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>sudo -u monad bash -c <span class="str">'</span>
+    source /home/monad/.env
+    monad-sign-name-record \
+        --address '<span class="str">"$IP"</span>':8000 \
+        --authenticated-udp-port 8001 \
+        --keystore-path /home/monad/monad-bft/config/id-secp \
+        --password "$KEYSTORE_PASSWORD" \
+        --self-record-seq-num 1
+<span class="str">'</span></pre>
+
+      <p>
+        Output includes a
+        <code class="inline">self_name_record_sig = "..."</code> line.
+        Copy the hex string and paste it into
+        <code class="inline">node.toml</code>, replacing the
+        <code class="inline">&lt;NAME_RECORD_SIG&gt;</code> placeholder.
+      </p>
+    </section>
+
+    <section class="step" id="snapshot">
+      <h2><span class="stepn">11</span>Hard reset + snapshot restore &mdash; the second rake</h2>
+
+      <div class="note crit">
+        <span class="nhead">The rake</span>
+        The top-level "full node installation" docs end with
+        "now <code class="inline">chown</code> and start the services." If
+        you do exactly that, your node will sit forever in statesync
+        because there's no forkpoint and no validators file, and there's
+        nothing in TrieDB for execution to run against. You must also run
+        the hard reset / snapshot restore sequence, which lives on a
+        separate doc page. Here it is, explicitly.
+      </div>
+
+      <p>
+        We'll use the helper scripts the Monad team publishes on their
+        infrastructure bucket. Download them first so you can read them
+        before running:
+      </p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>curl -fsSL -o /opt/monad/scripts/restore-from-snapshot.sh \
+    https://bucket.monadinfra.com/scripts/testnet/restore-from-snapshot.sh
+<span class="pmt"># </span>curl -fsSL -o /opt/monad/scripts/download-forkpoint.sh \
+    https://bucket.monadinfra.com/scripts/testnet/download-forkpoint.sh
+<span class="pmt"># </span>chmod +x /opt/monad/scripts/*.sh
+<span class="pmt"># </span>less /opt/monad/scripts/restore-from-snapshot.sh   <span class="cmt"># read it before running</span></pre>
+
+      <p>Now execute the sequence in order:</p>
+
+      <pre class="code" data-label="bash"><span class="cmt"># 1. wipe ledger / forkpoint / validators dirs and truncate TrieDB</span>
+<span class="pmt"># </span>bash /opt/monad/scripts/reset-workspace.sh
+
+<span class="cmt"># 2. download + verify + import the latest testnet snapshot (~5-10 min)</span>
+<span class="pmt"># </span>bash /opt/monad/scripts/restore-from-snapshot.sh
+
+<span class="cmt"># 3. pull the current forkpoint file</span>
+<span class="pmt"># </span>bash /opt/monad/scripts/download-forkpoint.sh
+
+<span class="cmt"># 4. pull the current validators file</span>
+<span class="pmt"># </span>curl -fsSL -o /home/monad/monad-bft/config/validators/validators.toml \
+    https://bucket.monadinfra.com/validators/testnet/validators.toml
+<span class="pmt"># </span>chown monad:monad /home/monad/monad-bft/config/validators/validators.toml</pre>
+
+      <p>
+        After this, your TrieDB has a multi-gigabyte state snapshot from a
+        recent block, your <code class="inline">forkpoint/forkpoint.toml</code>
+        points at a slightly newer block than the snapshot, and your
+        <code class="inline">validators/validators.toml</code> lists the
+        current validator set. Now the node has everything it needs.
+      </p>
+    </section>
+
+    <section class="step" id="start">
+      <h2><span class="stepn">12</span>Start the node &amp; verify</h2>
+      <p>Make absolutely sure ownership is correct, then enable and start the three services:</p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>chown -R monad:monad /home/monad/
+<span class="pmt"># </span>systemctl enable --now monad-bft monad-execution monad-rpc
+<span class="pmt"># </span>systemctl is-active monad-bft monad-execution monad-rpc</pre>
+
+      <p>Tail the logs and look for "committed block" lines appearing from <code class="inline">monad-bft</code>:</p>
+
+      <pre class="code" data-label="bash"><span class="pmt"># </span>journalctl -u monad-bft -u monad-execution -u monad-rpc -f</pre>
+
+      <p>
+        Peer discovery typically populates 100-250 peers within a minute.
+        Blocks should start being committed almost immediately after
+        statesync gates lift. The <code class="inline">monad-rpc</code>
+        service will log <code class="inline">"Waiting for statesync to
+        complete"</code> and won't open port <code class="inline">8080</code>
+        until the statesync phase is done — this is normal, not a bug.
+        Give it time.
+      </p>
+
+      <p>Once <code class="inline">monad-rpc</code> opens port 8080, you can check the sync state:</p>
+
+      <pre class="code" data-label="bash"><span class="pmt">$ </span>curl -s -X POST http://127.0.0.1:8080 \
+    -H <span class="str">'Content-Type: application/json'</span> \
+    -d <span class="str">'{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'</span></pre>
+
+      <p>
+        Compare the returned block with a public RPC
+        (<code class="inline">https://testnet-rpc.monad.xyz</code>) to see
+        how far behind the tip you are. Once the gap is near zero,
+        <code class="inline">eth_syncing</code> will return
+        <code class="inline">false</code>. You're done.
+      </p>
+    </section>
+
+    <section class="step" id="pitfalls">
+      <h2><span class="stepn">13</span>Pitfalls summary</h2>
+      <p>Quick reference of all the places a first-time operator can get caught:</p>
+      <ul>
+        <li><b>ufw vs iptables-persistent</b> — they conflict at the apt level. Installing one wipes the other. Pick iptables-persistent from the start.</li>
+        <li><b>Missing forkpoint and validators files</b> — the vanilla install-and-start sequence from the top-level docs leaves these empty and your node cannot sync. Run the hard reset / snapshot restore sequence in step 11, always.</li>
+        <li><b>RPC blocking on statesync</b> — <code class="inline">monad-rpc</code> does not open port 8080 until statesync completes. Curl will refuse the connection for the first few minutes. That's expected.</li>
+        <li><b>Regenerating keystores</b> — don't. Once created, treat SECP and BLS keystores as permanent identity. Regenerating = new node, lost peers, lost reputation.</li>
+        <li><b>Public metrics / RPC exposure</b> — by default <code class="inline">monad-rpc</code> binds <code class="inline">0.0.0.0:8080</code> and the OTEL Prometheus endpoint is on <code class="inline">*:8889</code>. If your firewall is anything less than strict, those are publicly reachable. Close them unless you explicitly want a public RPC.</li>
+        <li><b>Clock drift</b> — BFT consensus is sensitive to it. Make sure NTP is synchronized before starting services.</li>
+      </ul>
+
+      <div class="note">
+        <span class="nhead">Next steps after a healthy node</span>
+        Monitoring (service health, peer count, chain lag, disk usage, NVMe SMART), automated alerting, off-site key backups, SSH hardening (password auth off, fail2ban, non-default port), and a documented runbook for recovery and upgrades. A validator-grade node is much more than a successful first boot — but a successful first boot is where everything begins.
+      </div>
+    </section>
+
+    <footer class="gfoot">
+      <span class="clock">⏳</span>
+      shadowoftime · install guide v1.0 · 2026-04-15 ·
+      <a href="index.html">back to profile</a>
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>
