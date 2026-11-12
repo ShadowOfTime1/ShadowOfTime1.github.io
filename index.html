@@ -1700,36 +1700,36 @@ footer .clock {
         <!-- top-left: PEERS -->
         <g font-family="JetBrains Mono, monospace">
           <text x="100" y="148" font-size="9" fill="#14b8a6" letter-spacing="2">PEERS</text>
-          <text x="100" y="176" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec">252</text>
+          <text x="100" y="176" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec" data-live="peers">252</text>
           <text x="100" y="190" font-size="8" fill="#5a5a60" letter-spacing="1.5">/ 450 MAX</text>
         </g>
 
         <!-- top-right: SLA -->
         <g font-family="JetBrains Mono, monospace" text-anchor="end">
           <text x="420" y="148" font-size="9" fill="#14b8a6" letter-spacing="2">SLA · 24H</text>
-          <text x="420" y="176" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec">100<tspan font-size="18" fill="#5eead4">%</tspan></text>
+          <text x="420" y="176" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec"><tspan data-live="sla">100</tspan><tspan font-size="18" fill="#5eead4">%</tspan></text>
           <text x="420" y="190" font-size="8" fill="#5a5a60" letter-spacing="1.5">BFT · EXEC · RPC</text>
         </g>
 
         <!-- bottom-left: UPTIME -->
         <g font-family="JetBrains Mono, monospace">
           <text x="100" y="342" font-size="9" fill="#14b8a6" letter-spacing="2">UPTIME</text>
-          <text x="100" y="370" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec">30 weeks 1d 19h 37m<tspan font-size="18" fill="#5eead4"></tspan></text>
-          <text x="100" y="384" font-size="8" fill="#5a5a60" letter-spacing="1.5">HOST · 27-16:20:55 NODE</text>
+          <text x="100" y="370" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec"><tspan data-live="uptime">211d 19h</tspan></text>
+          <text x="100" y="384" font-size="8" fill="#5a5a60" letter-spacing="1.5" data-live="node_uptime">HOST · 27-16:20:55 NODE</text>
         </g>
 
         <!-- bottom-right: RAM -->
         <g font-family="JetBrains Mono, monospace" text-anchor="end">
           <text x="420" y="342" font-size="9" fill="#14b8a6" letter-spacing="2">RAM</text>
-          <text x="420" y="370" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec">32<tspan font-size="18" fill="#5eead4">%</tspan></text>
-          <text x="420" y="384" font-size="8" fill="#5a5a60" letter-spacing="1.5">11.8 / 62.4 GB</text>
+          <text x="420" y="370" font-family="Space Grotesk, sans-serif" font-size="26" font-weight="700" fill="#ececec"><tspan data-live="ram_pct">32</tspan><tspan font-size="18" fill="#5eead4">%</tspan></text>
+          <text x="420" y="384" font-size="8" fill="#5a5a60" letter-spacing="1.5" data-live="ram">11.8 / 62.4 GB</text>
         </g>
 
         <!-- center: big block number -->
         <g text-anchor="middle">
           <text x="260" y="248" font-family="JetBrains Mono, monospace" font-size="9" fill="#14b8a6" letter-spacing="4">BLOCK HEIGHT</text>
-          <text x="260" y="292" font-family="Space Grotesk, sans-serif" font-size="42" font-weight="700" fill="#ececec">79,067,332</text>
-          <text x="260" y="314" font-family="JetBrains Mono, monospace" font-size="9" fill="#5eead4" letter-spacing="1.5">NETWORK HEAD · 79,067,333 · LAG 1</text>
+          <text x="260" y="292" font-family="Space Grotesk, sans-serif" font-size="42" font-weight="700" fill="#ececec" data-live="block">79,067,332</text>
+          <text x="260" y="314" font-family="JetBrains Mono, monospace" font-size="9" fill="#5eead4" letter-spacing="1.5" data-live="head">NETWORK HEAD · 79,067,333 · LAG 1</text>
           <text x="260" y="330" font-family="JetBrains Mono, monospace" font-size="8" fill="#5a5a60" letter-spacing="1.5">IN SYNC · MONAD TESTNET · CHAIN 10143</text>
         </g>
 
@@ -1757,15 +1757,15 @@ footer .clock {
       <div class="status-legend">
         <div class="leg-item">
           <span class="leg-k">disk /</span>
-          <span class="leg-v">30% · 227 / 814 GB</span>
+          <span class="leg-v" data-live="disk">30% · 227 / 814 GB</span>
         </div>
         <div class="leg-item">
           <span class="leg-k">triedb</span>
-          <span class="leg-v">75.55% · 1.32 / 1750 GB</span>
+          <span class="leg-v" data-live="triedb">75.55% · 1.32 / 1750 GB</span>
         </div>
         <div class="leg-item">
           <span class="leg-k">nvme temps</span>
-          <span class="leg-v">36° 37° 38° 40°</span>
+          <span class="leg-v" data-live="temps">36° 37° 38° 40°</span>
         </div>
         <div class="leg-item">
           <span class="leg-k">ntp sync</span>
@@ -1773,9 +1773,9 @@ footer .clock {
         </div>
         <div class="leg-item">
           <span class="leg-k">client</span>
-          <span class="leg-v">monad 0.16.5 · unmodified</span>
+          <span class="leg-v" data-live="version">monad 0.16.5 · unmodified</span>
         </div>
-        <div class="leg-foot">snapshot · 2026-11-12 08:15 UTC</div>
+        <div class="leg-foot" data-live="ts">snapshot · 2026-11-12 08:35 UTC</div>
       </div>
     </div>
     </div>
@@ -1961,5 +1961,29 @@ footer .clock {
 })();
 </script>
 
+<script>
+(() => {
+  const fmt = n => Number(n).toLocaleString('en-US');
+  const set = (k, v) => document.querySelectorAll('[data-live="' + k + '"]').forEach(el => { el.textContent = v; });
+  const load = () => fetch('https://monadpulse.xyz/node-status.json', { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => {
+      if (d.block) set('block', fmt(d.block));
+      if (d.head) set('head', 'NETWORK HEAD · ' + fmt(d.head) + ' · LAG ' + d.lag);
+      if (d.peers != null) set('peers', d.peers);
+      if (d.sla) set('sla', d.sla);
+      if (d.uptime) set('uptime', d.uptime);
+      if (d.node_uptime) set('node_uptime', 'HOST · ' + d.node_uptime + ' NODE');
+      if (d.ram_pct) set('ram_pct', d.ram_pct);
+      ['ram', 'disk', 'triedb', 'temps'].forEach(k => { if (d[k]) set(k, d[k]); });
+      if (d.version) set('version', 'monad ' + d.version + ' · unmodified');
+      const ago = Math.max(0, Math.round((Date.now() / 1000 - d.ts) / 60));
+      set('ts', 'live · updated ' + (ago < 1 ? 'just now' : ago + ' min ago'));
+    })
+    .catch(() => {});
+  load();
+  setInterval(load, 60000);
+})();
+</script>
 </body>
 </html>
